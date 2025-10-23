@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}상품 등록{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="glass" style="max-width:700px;margin:40px auto;padding:30px;border-radius:20px;">
+    <h2 style="font-weight:700;margin-bottom:20px;">상품 등록</h2>
+
+    {% if form.errors %}
+      <div style="color:#ff6b6b;background:rgba(255,0,0,0.1);padding:10px;border-radius:8px;margin-bottom:16px;">
+        {{ form.errors }}
+      </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" action="{% url 'listing_create' %}">
+      {% csrf_token %}
+
+      <div id="preview-container" style="display:flex;gap:8px;margin-bottom:12px;"></div>
+
+      <div style="display:grid;gap:14px;">
+        <label>제목<br>{{ form.title }}</label>
+        <label>가격<br>{{ form.price }}</label>
+        <label>설명<br>{{ form.description }}</label>
+        <label>상태<br>{{ form.status }}</label>
+        <label>이미지<br>{{ form.image }}</label>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button type="submit" class="glass-btn">등록하기</button>
+        <a href="{% url 'listing_list' %}" class="glass-btn" style="background:rgba(255,255,255,0.2);">취소</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded",()=>{
+  const input=document.querySelector('input[type="file"][name="image"]');
+  const preview=document.getElementById("preview-container");
+  if(!input) return;
+  input.addEventListener("change",(e)=>{
+    preview.innerHTML="";
+    const file=e.target.files[0];
+    if(!file) return;
+    if(!file.type.startsWith("image/")) { alert("이미지 파일만 업로드할 수 있습니다."); input.value=""; return; }
+    const r=new FileReader();
+    r.onload=ev=>{
+      const img=new Image();
+      img.src=ev.target.result;
+      img.style.width="140px"; img.style.height="140px"; img.style.objectFit="cover";
+      img.style.borderRadius="12px"; img.style.border="1px solid rgba(255,255,255,0.3)";
+      preview.appendChild(img);
+    };
+    r.readAsDataURL(file);
+  });
+});
+</script>
+{% endblock %}

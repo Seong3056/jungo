@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}비대면중고 - 홈{% endblock %}
+{% block content %}
+<section class="hero glass">
+  <h1 class="hero__title">언제 어디서나, 안전하게 거래하세요</h1>
+  <p class="hero__subtitle">에스크로 결제 · 인증 · 스마트 검색</p>
+  <a class="btn" href="{% url 'listing_list' %}">지금 시작하기</a>
+</section>
+<section class="grid">
+  <article class="card glass"><h3>안전 결제</h3><p>에스크로 방식으로 신뢰 확보</p></article>
+  <article class="card glass"><h3>이미지 검증</h3><p>이미지 필수 업로드</p></article>
+  <article class="card glass"><h3>간편 가입</h3><p>회원가입 · 로그인</p></article>
+</section>
+{% endblock %}

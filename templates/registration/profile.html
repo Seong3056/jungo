@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}내 계정 - 비대면중고{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="glass" style="max-width:720px;margin:24px auto;padding:22px;">
+    <h2 style="margin:0 0 10px;">내 계정</h2>
+    <div>안녕하세요, <strong>{{ request.user.username }}</strong>님!</div>
+    <div style="margin-top:12px;">
+      <a class="btn" href="{% url 'logout' %}">로그아웃</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
