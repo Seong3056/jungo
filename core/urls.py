@@ -6,7 +6,6 @@ from core.views import HomeView
 
 urlpatterns = [
     path('chat/', include('chat.urls')),
-
     path('admin/', admin.site.urls),
     path('', HomeView.as_view(), name='home'),
     path('listings/', include('listings.html_urls')),

@@ -1,48 +1,53 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
-from listings.models import Listing
+from django.utils import timezone
 from .models import ChatRoom, Message
-from .forms import MessageForm
-from django.db import models
-
+from listings.models import Listing
 
 @login_required
-def chat_view(request, listing_id):
+def chat_view(request, chat_id):
+    """특정 채팅방의 메시지 불러오기 + 전송 처리"""
+    room = get_object_or_404(ChatRoom, id=chat_id)
+
+    # 권한 확인 (판매자/구매자만 접근 가능)
+    if request.user not in [room.buyer, room.seller]:
+        return redirect('/')
+
+    # 메시지 목록 불러오기
+    messages = Message.objects.filter(room=room).order_by("timestamp")
+
+    # 메시지 전송
+    if request.method == "POST":
+        content = request.POST.get("content")
+        if content:
+            Message.objects.create(
+                room=room,
+                sender=request.user,
+                content=content,
+                timestamp=timezone.now()
+            )
+            room.updated_at = timezone.now()
+            room.save()
+            return redirect('chat_room', chat_id=chat_id)
+
+    return render(request, "chat/chat_room.html", {
+        "room": room,
+        "messages": messages,
+        "listing": room.listing,
+        "other_user": room.other_user(request.user),
+    })
+
+@login_required
+def chat_room_create(request, listing_id):
+    """상품 상세 페이지 → 대화 시작 버튼 클릭 시 채팅방 생성/이동"""
     listing = get_object_or_404(Listing, id=listing_id)
     buyer = request.user
     seller = listing.seller
 
-    # ✅ 동일 상품+구매자 조합으로 방을 찾거나 새로 생성
     room, created = ChatRoom.objects.get_or_create(
-        listing=listing, buyer=buyer, seller=seller
+        listing=listing,
+        buyer=buyer,
+        seller=seller
     )
 
-    messages = room.messages.all().order_by("timestamp")
-
-    if request.method == "POST":
-        form = MessageForm(request.POST)
-        if form.is_valid():
-            Message.objects.create(
-                room=room,
-                sender=request.user,
-                content=form.cleaned_data["message"],
-            )
-            return redirect("chat_room", listing_id=listing.id)
-    else:
-        form = MessageForm()
-
-    return render(request, "chat/chat_room.html", {
-        "listing": listing,
-        "room": room,
-        "messages": messages,
-        "form": form,
-        "seller": seller,
-    })
-    
-@login_required
-def chat_list_view(request):
-    user = request.user
-    # ✅ 내가 buyer거나 seller인 채팅방만 표시
-    rooms = ChatRoom.objects.filter(models.Q(buyer=user) | models.Q(seller=user)).order_by("-created_at")
-
-    return render(request, "chat/chat_list.html", {"rooms": rooms, "user": user})
+    return redirect("chat:chat_room", room_id=room.id)

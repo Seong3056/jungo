@@ -1,7 +1,10 @@
 from django.urls import path
-from .views import chat_list_view, chat_view
+from . import views
+
+app_name = "chat"
 
 urlpatterns = [
-    path("", chat_list_view, name="chat_list"),
-    path("<int:listing_id>/", chat_view, name="chat_room"),
+    #path("", views.chat_list_view, name="chat_list"),
+    path("create/<int:listing_id>/", views.chat_room_create, name="chat_room_create"),  # ✅
+    path("<int:room_id>/", views.chat_view, name="chat_room"),  # ✅
 ]

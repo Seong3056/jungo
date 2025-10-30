@@ -1,13 +1,52 @@
 {% extends "base.html" %}
-{% block title %}내 계정 - 비대면중고{% endblock %}
+{% block title %}내 프로필{% endblock %}
 {% block content %}
-<div class="container">
-  <div class="glass" style="max-width:720px;margin:24px auto;padding:22px;">
-    <h2 style="margin:0 0 10px;">내 계정</h2>
-    <div>안녕하세요, <strong>{{ request.user.username }}</strong>님!</div>
-    <div style="margin-top:12px;">
-      <a class="btn" href="{% url 'logout' %}">로그아웃</a>
+<div class="container profile-container">
+  <div class="glass profile-box">
+    <h2>👤 {{ request.user.username }}님의 프로필</h2>
+    <p class="profile-subtitle">내가 등록한 물품 목록</p>
+
+    {% if my_items %}
+    <div class="item-grid">
+      {% for item in my_items %}
+      <a href="{% url 'listing_detail' item.id %}" class="item-card glass">
+        {% if item.image %}
+        <img src="{{ item.image.url }}" alt="{{ item.title }}" class="item-image">
+        {% else %}
+        <div class="item-image placeholder">이미지 없음</div>
+        {% endif %}
+
+        <div class="item-info">
+          <h3>{{ item.title }}</h3>
+          <p class="price">{{ item.price }}원</p>
+        </div>
+      </a>
+      {% endfor %}
     </div>
+
+    {% else %}
+    <p class="no-items">아직 등록한 물품이 없습니다.</p>
+    {% endif %}
+    {% if my_chats %}
+    <div class="chat-list-vertical">
+      {% for room in my_chats %}
+      <a href="{% url 'chat_room' room.id %}" class="chat-row glass">
+        <div class="chat-row-left">
+          {% if room.listing.image %}
+          <img src="{{ room.listing.image.url }}" alt="{{ room.listing.title }}" class="chat-thumbnail">
+          {% endif %}
+        </div>
+        <div class="chat-row-right">
+          <h3 class="chat-title">{{ room.listing.title }}</h3>
+          <p class="chat-user">{{ room.other_user_name }} 님과 대화 중</p>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="no-items">현재 열려 있는 채팅방이 없습니다.</p>
+    {% endif %}
   </div>
+
 </div>
 {% endblock %}

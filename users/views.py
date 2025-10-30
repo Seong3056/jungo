@@ -3,6 +3,9 @@ from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth import login, logout
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from listings.models import Listing
+from chat.models import ChatRoom
+from django.db import models
 
 def signup_view(request):
     if request.user.is_authenticated:
@@ -41,4 +44,16 @@ def logout_view(request):
 
 @login_required
 def profile_view(request):
-    return render(request, 'registration/profile.html')
+    my_items = Listing.objects.filter(seller=request.user).order_by('-id')
+    my_chats = ChatRoom.objects.filter(
+        models.Q(buyer=request.user) | models.Q(seller=request.user)
+    ).select_related('listing', 'buyer', 'seller')
+
+    # ✅ 각 채팅방에 other_user_name 속성 추가
+    for chat in my_chats:
+        chat.other_user_name = chat.seller.username if chat.buyer == request.user else chat.buyer.username
+
+    return render(request, "registration/profile.html", {
+        "my_items": my_items,
+        "my_chats": my_chats,
+    })
