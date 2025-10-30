@@ -29,5 +29,5 @@ class Message(models.Model):
         return f"{self.sender.username}: {self.content[:20]}"
 
     def save(self, *args, **kwargs):
-        # 알림 생성 로직 제거: 기본 동작만 수행
+        # 알림 생성 로직 제거: 기본 save만 수행
         super().save(*args, **kwargs)

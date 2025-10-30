@@ -42,16 +42,6 @@
     </div>
   </header>
 
-  {% if messages %}
-  <div id="toast-container" aria-live="polite" aria-atomic="true">
-    {% for m in messages %}
-    <div class="toast glass {% if m.tags %}{{ m.tags }}{% endif %}" role="status">
-      {{ m }}
-    </div>
-    {% endfor %}
-  </div>
-  {% endif %}
-
   <main class="container">
     {% block content %}{% endblock %}
   </main>
