@@ -6,7 +6,7 @@
     <h2>💬 내 채팅방 목록</h2>
     <div style="margin-top:16px;">
       {% for room in rooms %}
-        <a href="{% url 'chat_room' room.listing.id %}" 
+        <a href="{% url 'chat:chat_room' room.id %}" 
            class="glass"
            style="display:flex;justify-content:space-between;align-items:center;padding:12px;margin-bottom:8px;border-radius:12px;text-decoration:none;">
           <div>

@@ -29,8 +29,8 @@
     {% endif %}
     {% if my_chats %}
     <div class="chat-list-vertical">
-      {% for room in my_chats %}
-      <a href="{% url 'chat_room' room.id %}" class="chat-row glass">
+  {% for room in my_chats %}
+  <a href="{% url 'chat:chat_room' room.id %}" class="chat-row glass">
         <div class="chat-row-left">
           {% if room.listing.image %}
           <img src="{{ room.listing.image.url }}" alt="{{ room.listing.title }}" class="chat-thumbnail">
