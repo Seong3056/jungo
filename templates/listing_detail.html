@@ -20,8 +20,8 @@
   </div>
 </div>
 
-{% if request.user != listing.seller %}
-<a href="{% url 'chat_room_create' listing.id %}" class="btn">💬 판매자와 대화하기</a>
+{% if request.user != object.seller %}
+<a href="{% url 'chat:chat_room_create' object.id %}" class="btn">💬 판매자와 대화하기</a>
 {% endif %}
 
 {% endblock %}

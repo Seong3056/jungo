@@ -1,12 +1,24 @@
 {% extends 'base.html' %}
 {% load static %}
 {% load tz %}
+{% load humanize %}
 {% block content %}
-<link rel="stylesheet" href="{% static 'css/chat.css' %}">
 
-<div class="chat-container glass">
-  <h2>{{ listing.title }} — {{ other_user.username }}님과의 대화</h2>
-  <div class="chat-messages" id="chat-messages">
+<div class="chat-layout container">
+  <aside class="listing-panel glass">
+    <h3>{{ listing.title }}</h3>
+    {% if listing.image %}
+    <img src="{{ listing.image.url }}" alt="{{ listing.title }}" style="width:100%;border-radius:8px;object-fit:cover;max-height:420px;" />
+    {% endif %}
+    <p style="font-size:18px;font-weight:700;margin:12px 0 4px;">{{ listing.price|intcomma }} 원</p>
+    <p style="color:var(--muted);margin:0 0 8px;">판매자: {{ listing.seller.username }}</p>
+    <div style="margin-top:12px;">{{ listing.description|linebreaks }}</div>
+  </aside>
+
+  <section class="chat-column">
+    <div class="chat-container glass">
+      <h2 style="margin:0 0 12px;">{{ listing.title }} — {{ other_user.username }}님과의 대화</h2>
+      <div class="chat-messages" id="chat-messages">
     {% for message in messages %}
       {% if message.sender == request.user %}
         <div class="message-row me">
@@ -38,12 +50,93 @@
     {% empty %}
       <p>아직 메시지가 없습니다.</p>
     {% endfor %}
-  </div>
+    </div>
 
-  <form method="POST" class="chat-form">
-    {% csrf_token %}
-    <textarea name="content" placeholder="메시지를 입력하세요" required></textarea>
-    <button type="submit" class="btn">보내기</button>
-  </form>
+    <!-- 채팅 입력 폼을 chat-container 내부로 이동: 버튼이 glass 영역 안에 보이도록 함 -->
+    <form method="POST" class="chat-form" style="margin-top:12px;">
+      {% csrf_token %}
+      <textarea name="content" placeholder="메시지를 입력하세요" required></textarea>
+      <button type="submit" class="btn btn--full">보내기</button>
+    </form>
+  </section>
 </div>
+<script>
+  (function(){
+    const form = document.querySelector('.chat-form');
+    const messagesEl = document.getElementById('chat-messages');
+    if (!form || !messagesEl) return;
+
+    const textarea = form.querySelector('textarea[name="content"]');
+    if (!textarea) return;
+
+    // 엔터 = 전송, Shift+Enter = 줄바꿈
+    textarea.addEventListener('keydown', function(e){
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        // requestSubmit() 는 폼의 submit 이벤트를 트리거하므로 기존 비동기 처리 핸들러와 연동됩니다.
+        if (typeof form.requestSubmit === 'function') {
+          form.requestSubmit();
+        } else {
+          // 오래된 브라우저 폴백
+          form.querySelector('button[type="submit"]').click();
+        }
+      }
+    });
+
+    function scrollToBottom(){
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function makeMessageNode(data){
+      const row = document.createElement('div');
+      row.className = 'message-row me';
+      const msg = document.createElement('div');
+      msg.className = 'message me';
+      msg.innerHTML = `${data.content}<div class="timestamp">${data.timestamp}</div>`;
+      row.appendChild(msg);
+      return row;
+    }
+
+    form.addEventListener('submit', async function(e){
+      e.preventDefault();
+      const textarea = form.querySelector('textarea[name="content"]');
+      const content = textarea.value.trim();
+      if (!content) return;
+      const csrfInput = form.querySelector('input[name="csrfmiddlewaretoken"]');
+      const csrftoken = csrfInput ? csrfInput.value : '';
+
+      try{
+        const resp = await fetch(window.location.href, {
+          method: 'POST',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': csrftoken,
+            'Accept': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+          },
+          body: new URLSearchParams({content})
+        });
+
+        if (resp.ok) {
+          const data = await resp.json();
+          const node = makeMessageNode(data);
+          messagesEl.appendChild(node);
+          textarea.value = '';
+          scrollToBottom();
+        } else {
+          // fallback to full submit on failure
+          form.removeEventListener('submit', arguments.callee);
+          form.submit();
+        }
+      } catch (err){
+        console.error(err);
+        form.removeEventListener('submit', arguments.callee);
+        form.submit();
+      }
+    });
+
+    // initial scroll to bottom
+    scrollToBottom();
+  })();
+</script>
 {% endblock %}

@@ -1,13 +1,14 @@
 from django.shortcuts import render, get_object_or_404, redirect
+from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from .models import ChatRoom, Message
 from listings.models import Listing
 
 @login_required
-def chat_view(request, chat_id):
+def chat_view(request, room_id):
     """특정 채팅방의 메시지 불러오기 + 전송 처리"""
-    room = get_object_or_404(ChatRoom, id=chat_id)
+    room = get_object_or_404(ChatRoom, id=room_id)
 
     # 권한 확인 (판매자/구매자만 접근 가능)
     if request.user not in [room.buyer, room.seller]:
@@ -20,7 +21,7 @@ def chat_view(request, chat_id):
     if request.method == "POST":
         content = request.POST.get("content")
         if content:
-            Message.objects.create(
+            msg = Message.objects.create(
                 room=room,
                 sender=request.user,
                 content=content,
@@ -28,7 +29,15 @@ def chat_view(request, chat_id):
             )
             room.updated_at = timezone.now()
             room.save()
-            return redirect('chat_room', chat_id=chat_id)
+            # If request is AJAX, return JSON to allow client to append message without full reload
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'id': msg.id,
+                    'content': msg.content,
+                    'sender': request.user.username,
+                    'timestamp': msg.timestamp.strftime('%y.%m.%d %H:%M')
+                }, status=201)
+            return redirect('chat:chat_room', room_id=room_id)
 
     return render(request, "chat/chat_room.html", {
         "room": room,

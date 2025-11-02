@@ -414,60 +414,7 @@ body {
   color: var(--text);
 }
 
-/* TOASTS */
-#toast-container {
-  position: fixed;
-  top: 24px;
-  right: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  pointer-events: none;
-}
-
-.toast {
-  min-width: 240px;
-  max-width: 92vw;
-  padding: 14px 18px;
-  font-weight: 600;
-  font-size: 14px;
-  border-radius: 14px;
-  background: var(--glass-bg);
-  border: var(--glass-br);
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(16px);
-  opacity: 0;
-  transform: translateY(-10px);
-  animation: toastIn .35s ease-out forwards;
-  pointer-events: auto;
-  cursor: pointer;
-}
-
-.toast.success {
-  border-left: 4px solid var(--success);
-}
-
-.toast.error {
-  border-left: 4px solid var(--error);
-}
-
-.toast.info {
-  border-left: 4px solid var(--info);
-}
-
-@keyframes toastIn {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes toastOut {
-  to {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-}
+/* TOASTS removed - notification UI disabled */
 
 /* ===== RESPONSIVE BREAKPOINTS ===== */
 
@@ -728,9 +675,40 @@ body {
   margin-top: 4px;
 }
 .chat-container {
-  width: 80%;
+  /* 채팅 UI는 휴대폰처럼 좁은 컬럼 형태로 고정하고 중앙 정렬합니다. */
+  width: 100%;
+  max-width: 420px; /* 데스크탑에서 채팅창 최대 너비 */
   margin: 0 auto;
   padding: 20px;
+}
+
+/* ===== Chat two-column layout for listing + chat ===== */
+.chat-layout {
+  display: grid;
+  grid-template-columns: 1fr 440px; /* listing (flex) / chat column (fixed) */
+  gap: 20px;
+  align-items: start;
+  margin: 24px 16px;
+}
+
+.listing-panel {
+  padding: 18px;
+  border-radius: 12px;
+}
+
+.chat-column {
+  /* ensure right column content takes full width */
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .chat-layout {
+    grid-template-columns: 1fr; /* stack */
+    margin: 12px;
+  }
+  .chat-container {
+    max-width: 100%;
+  }
 }
 
 .chat-messages {
@@ -787,8 +765,30 @@ body {
 .chat-form button:hover {
   background-color: #357ab8;
 }
+
+/* Full width send button inside chat container */
+.chat-container .chat-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chat-container .chat-form textarea {
+  width: 100%;
+  min-height: 80px;
+  resize: vertical;
+}
+
+.chat-container .chat-form .btn--full {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 10px;
+  text-align: center;
+}
 .chat-container {
-  width: 80%;
+  /* 중복 정의를 동일하게 유지 (위와 동일한 규칙) */
+  width: 100%;
+  max-width: 420px;
   margin: 0 auto;
   padding: 20px;
 }
@@ -938,6 +938,10 @@ main.container {
   align-items: stretch;
   padding: 20px;
   box-sizing: border-box;
+  /* 넓이를 늘려 중앙에 고정 (데스크탑 기준) */
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
   min-height: calc(100vh - 160px); /* 헤더 + 푸터 높이만큼 보정 */
 }
 
