@@ -1,0 +1,13 @@
+/* Main entry — imports modular css parts */
+@import 'base/reset.css';
+@import 'base/variables.css';
+@import 'base/typography.css';
+@import 'layout/header.css';
+@import 'components/buttons.css';
+@import 'components/forms.css';
+@import 'components/cards.css';
+@import 'pages/chat.css';
+@import 'utilities/responsive.css';
+
+/* End of main imports */
+

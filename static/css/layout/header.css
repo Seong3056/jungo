@@ -1,0 +1,44 @@
+/* header and brand styles */
+.glass--header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 14px 20px;
+	margin: 16px;
+	position: sticky;
+	top: 0;
+	z-index: 50;
+	flex-wrap: wrap;
+	gap: 10px;
+}
+
+.glass--footer {
+	text-align: center;
+	color: var(--muted);
+	padding: 18px;
+	margin: 32px 16px;
+}
+
+.brand {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	font-weight: 900;
+}
+
+.brand__icon {
+	width: 40px;
+	height: 40px;
+	border-radius: 12px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--accent);
+	color: #fff;
+	font-size: 18px;
+}
+
+.brand__name { font-size: 18px; }
+
+.search { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+
