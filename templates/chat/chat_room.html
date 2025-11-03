@@ -53,11 +53,69 @@
     </div>
 
     <!-- 채팅 입력 폼을 chat-container 내부로 이동: 버튼이 glass 영역 안에 보이도록 함 -->
-    <form method="POST" class="chat-form" style="margin-top:12px;">
+        <form method="POST" class="chat-form chat-form--spaced">
       {% csrf_token %}
       <textarea name="content" placeholder="메시지를 입력하세요" required></textarea>
-      <button type="submit" class="btn btn--full">보내기</button>
+      <div class="chat-form__actions"
+           data-has-order="{% if order %}true{% else %}false{% endif %}"
+           data-order-confirmed="{% if order and order.escrow_state == 'RELEASED' %}true{% else %}false{% endif %}"
+           data-order-id="{% if order %}{{ order.id }}{% endif %}"
+           data-order-state="{% if order %}{{ order.escrow_state }}{% endif %}"
+           data-initial-code="{% if order and order.confirmation_code %}{{ order.confirmation_code }}{% endif %}"
+           data-listing-id="{{ listing.id }}"
+           data-buyer-id="{{ room.buyer.id }}"
+           data-is-seller="{% if request.user == room.seller %}true{% else %}false{% endif %}"
+           data-is-buyer="{% if request.user == room.buyer %}true{% else %}false{% endif %}">
+        <button type="submit" class="btn chat-form__send">보내기</button>
+        {% if request.user == room.buyer %}
+        <button type="button"
+                class="btn chat-form__purchase"
+                data-listing-id="{{ listing.id }}"
+                data-amount="{{ listing.price }}"
+                {% if order %}disabled{% endif %}>
+          {% if order %}
+            {% if order.escrow_state == 'RELEASED' %}
+              구매완료
+            {% else %}
+              구매요청됨
+            {% endif %}
+          {% else %}
+            구매하기
+          {% endif %}
+        </button>
+        {% endif %}
+        {% if request.user == room.seller %}
+        <button type="button"
+                class="btn chat-form__confirm"
+                {% if order %}data-order-id="{{ order.id }}"{% endif %}
+                {% if not order or order.escrow_state == 'RELEASED' %}disabled{% endif %}>
+          {% if order and order.escrow_state == 'RELEASED' %}
+            구매확정 완료
+          {% else %}
+            구매확정
+          {% endif %}
+        </button>
+        {% endif %}
+      </div>
     </form>
+    {% if request.user == room.buyer %}
+    <div class="chat-purchase-code"
+         data-empty-text="구매를 진행하면 수령 확인 코드를 받게 됩니다."
+         data-pending-text="판매자의 구매확정을 기다리고 있습니다."
+         data-complete-prefix="수령 확인 코드: "
+         data-initial-code="{% if order and order.confirmation_code %}{{ order.confirmation_code }}{% endif %}"
+         data-initial-state="{% if order %}{% if order.escrow_state == 'RELEASED' %}released{% else %}pending{% endif %}{% else %}none{% endif %}">
+      {% if order %}
+        {% if order.escrow_state == 'RELEASED' and order.confirmation_code %}
+          수령 확인 코드: <span class="chat-purchase-code__value">{{ order.confirmation_code }}</span>
+        {% else %}
+          판매자의 구매확정을 기다리고 있습니다.
+        {% endif %}
+      {% else %}
+        구매를 진행하면 수령 확인 코드를 받게 됩니다.
+      {% endif %}
+    </div>
+    {% endif %}
   </section>
 </div>
 <script>
@@ -69,16 +127,44 @@
     const textarea = form.querySelector('textarea[name="content"]');
     if (!textarea) return;
 
-    // 엔터 = 전송, Shift+Enter = 줄바꿈
+    const csrfInput = form.querySelector('input[name="csrfmiddlewaretoken"]');
+    const csrftoken = csrfInput ? csrfInput.value : '';
+
+    const submitButton = form.querySelector('.chat-form__send');
+    const purchaseBtn = form.querySelector('.chat-form__purchase');
+    const confirmBtn = form.querySelector('.chat-form__confirm');
+    const actionsEl = form.querySelector('.chat-form__actions');
+    const purchaseCodeEl = document.querySelector('.chat-purchase-code');
+    const POLL_INTERVAL = 5000;
+
+    const listingId = actionsEl ? actionsEl.dataset.listingId : null;
+    const buyerId = actionsEl ? actionsEl.dataset.buyerId : null;
+    const isSeller = actionsEl ? actionsEl.dataset.isSeller === 'true' : false;
+    const isBuyer = actionsEl ? actionsEl.dataset.isBuyer === 'true' : false;
+
+    let orderId = actionsEl && actionsEl.dataset.orderId ? actionsEl.dataset.orderId : null;
+    let hasOrder = actionsEl ? actionsEl.dataset.hasOrder === 'true' : false;
+    let orderState = actionsEl ? actionsEl.dataset.orderState || '' : '';
+    let orderConfirmed = actionsEl ? actionsEl.dataset.orderConfirmed === 'true' : false;
+    let confirmationCode = actionsEl ? actionsEl.dataset.initialCode || '' : '';
+
+    let sellerPollTimer = null;
+    let buyerPollTimer = null;
+    let buyerNotifiedForCode = orderConfirmed && !!confirmationCode;
+
+    const codeTexts = purchaseCodeEl ? {
+      empty: purchaseCodeEl.dataset.emptyText || '',
+      pending: purchaseCodeEl.dataset.pendingText || '',
+      completePrefix: purchaseCodeEl.dataset.completePrefix || ''
+    } : null;
+
     textarea.addEventListener('keydown', function(e){
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        // requestSubmit() 는 폼의 submit 이벤트를 트리거하므로 기존 비동기 처리 핸들러와 연동됩니다.
         if (typeof form.requestSubmit === 'function') {
           form.requestSubmit();
-        } else {
-          // 오래된 브라우저 폴백
-          form.querySelector('button[type="submit"]').click();
+        } else if (submitButton) {
+          submitButton.click();
         }
       }
     });
@@ -97,13 +183,178 @@
       return row;
     }
 
+    function setOrderState(orderData){
+      if (!actionsEl) return;
+      if (orderData && orderData.id) {
+        orderId = String(orderData.id);
+        hasOrder = true;
+        orderState = orderData.escrow_state || '';
+        orderConfirmed = orderState === 'RELEASED';
+        if (typeof orderData.confirmation_code === 'string' && orderData.confirmation_code.length) {
+          confirmationCode = orderData.confirmation_code;
+        }
+        actionsEl.dataset.orderId = orderId;
+        actionsEl.dataset.hasOrder = 'true';
+        actionsEl.dataset.orderConfirmed = orderConfirmed ? 'true' : 'false';
+        actionsEl.dataset.orderState = orderState;
+        actionsEl.dataset.initialCode = confirmationCode || '';
+      } else {
+        orderId = null;
+        hasOrder = false;
+        orderState = '';
+        orderConfirmed = false;
+        confirmationCode = '';
+        actionsEl.dataset.orderId = '';
+        actionsEl.dataset.hasOrder = 'false';
+        actionsEl.dataset.orderConfirmed = 'false';
+        actionsEl.dataset.orderState = '';
+        actionsEl.dataset.initialCode = '';
+        buyerNotifiedForCode = false;
+      }
+    }
+
+    function updateCodeDisplay(triggerAlert){
+      if (!purchaseCodeEl || !isBuyer || !codeTexts) return;
+      if (!hasOrder) {
+        purchaseCodeEl.textContent = codeTexts.empty;
+        return;
+      }
+      if (orderConfirmed && confirmationCode) {
+        purchaseCodeEl.innerHTML = `${codeTexts.completePrefix}<span class="chat-purchase-code__value">${confirmationCode}</span>`;
+        if (triggerAlert && !buyerNotifiedForCode) {
+          alert(`${codeTexts.completePrefix}${confirmationCode}`);
+          buyerNotifiedForCode = true;
+        }
+      } else {
+        purchaseCodeEl.textContent = codeTexts.pending || codeTexts.empty;
+      }
+    }
+
+    function applyOrderState(orderData){
+      const prevConfirmed = orderConfirmed;
+      setOrderState(orderData);
+
+      if (purchaseBtn) {
+        if (!hasOrder) {
+          purchaseBtn.disabled = false;
+          purchaseBtn.textContent = '구매하기';
+        } else {
+          purchaseBtn.disabled = true;
+          purchaseBtn.textContent = orderConfirmed ? '구매완료' : '구매요청됨';
+        }
+      }
+
+      if (confirmBtn) {
+        if (!hasOrder) {
+          confirmBtn.disabled = true;
+          confirmBtn.textContent = '구매확정';
+        } else if (orderConfirmed) {
+          confirmBtn.disabled = true;
+          confirmBtn.textContent = '구매확정 완료';
+        } else {
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = '구매확정';
+        }
+      }
+
+      if (!orderConfirmed) {
+        buyerNotifiedForCode = false;
+      }
+
+      const becameConfirmed = !prevConfirmed && orderConfirmed;
+      updateCodeDisplay(becameConfirmed && isBuyer);
+
+      if (orderConfirmed && sellerPollTimer) {
+        clearTimeout(sellerPollTimer);
+        sellerPollTimer = null;
+      }
+      if (orderConfirmed && buyerPollTimer) {
+        clearTimeout(buyerPollTimer);
+        buyerPollTimer = null;
+      }
+
+      scheduleSellerPoll();
+      scheduleBuyerPoll();
+    }
+
+    async function fetchLatestOrder(){
+      if (!listingId || !buyerId) return null;
+      try {
+        const params = new URLSearchParams({ listing: listingId, buyer: buyerId });
+        const resp = await fetch(`/api/orders/?${params.toString()}`, {
+          headers: { 'Accept': 'application/json' }
+        });
+        if (!resp.ok) return null;
+        const data = await resp.json();
+        let orders = [];
+        if (Array.isArray(data)) {
+          orders = data;
+        } else if (data && Array.isArray(data.results)) {
+          orders = data.results;
+        }
+        if (orders.length) {
+          orders.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+          return orders[0];
+        }
+      } catch (error) {
+        console.error(error);
+      }
+      return null;
+    }
+
+    function scheduleSellerPoll(){
+      if (!isSeller || !confirmBtn) return;
+      if (!hasOrder) {
+        if (sellerPollTimer) {
+          clearTimeout(sellerPollTimer);
+          sellerPollTimer = null;
+        }
+        return;
+      }
+      if (orderConfirmed) {
+        if (sellerPollTimer) {
+          clearTimeout(sellerPollTimer);
+          sellerPollTimer = null;
+        }
+        return;
+      }
+      if (sellerPollTimer) return;
+      sellerPollTimer = setTimeout(async () => {
+        sellerPollTimer = null;
+        const latest = await fetchLatestOrder();
+        if (latest) {
+          applyOrderState(latest);
+        } else {
+          scheduleSellerPoll();
+        }
+      }, POLL_INTERVAL);
+    }
+
+    function scheduleBuyerPoll(){
+      if (!isBuyer || !purchaseBtn) return;
+      if (!hasOrder || orderConfirmed) {
+        if (buyerPollTimer) {
+          clearTimeout(buyerPollTimer);
+          buyerPollTimer = null;
+        }
+        return;
+      }
+      if (buyerPollTimer) return;
+      buyerPollTimer = setTimeout(async () => {
+        buyerPollTimer = null;
+        const latest = await fetchLatestOrder();
+        if (latest) {
+          applyOrderState(latest);
+        } else {
+          scheduleBuyerPoll();
+        }
+      }, POLL_INTERVAL);
+    }
+
     form.addEventListener('submit', async function(e){
       e.preventDefault();
-      const textarea = form.querySelector('textarea[name="content"]');
       const content = textarea.value.trim();
       if (!content) return;
-      const csrfInput = form.querySelector('input[name="csrfmiddlewaretoken"]');
-      const csrftoken = csrfInput ? csrfInput.value : '';
 
       try{
         const resp = await fetch(window.location.href, {
@@ -124,7 +375,6 @@
           textarea.value = '';
           scrollToBottom();
         } else {
-          // fallback to full submit on failure
           form.removeEventListener('submit', arguments.callee);
           form.submit();
         }
@@ -135,7 +385,135 @@
       }
     });
 
-    // initial scroll to bottom
+    if (purchaseBtn) {
+      purchaseBtn.addEventListener('click', async function(){
+        if (purchaseBtn.disabled) return;
+        const listingIdAttr = purchaseBtn.dataset.listingId;
+        const amountAttr = purchaseBtn.dataset.amount;
+        if (!listingIdAttr || !amountAttr) return;
+
+        const originalLabel = purchaseBtn.textContent.trim() || '구매하기';
+        purchaseBtn.disabled = true;
+        purchaseBtn.textContent = '구매 진행중...';
+
+        let createdOrder = null;
+
+        try {
+          const resp = await fetch('/api/orders/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest',
+              'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({
+              listing: Number(listingIdAttr),
+              amount: Number(amountAttr)
+            })
+          });
+
+          if (resp.ok) {
+            createdOrder = await resp.json();
+            applyOrderState(createdOrder);
+            alert('구매 요청이 접수되었습니다.');
+          } else {
+            let message = '구매 요청 처리 중 오류가 발생했습니다.';
+            try {
+              const data = await resp.json();
+              if (data) {
+                if (typeof data.detail === 'string') {
+                  message = data.detail;
+                } else {
+                  const firstValue = Object.values(data)[0];
+                  if (Array.isArray(firstValue) && firstValue.length) {
+                    message = firstValue[0];
+                  }
+                }
+              }
+            } catch (_) {}
+            alert(message);
+          }
+        } catch (error) {
+          console.error(error);
+          alert('구매 요청 처리 중 오류가 발생했습니다.');
+        } finally {
+          if (!createdOrder) {
+            purchaseBtn.disabled = false;
+            purchaseBtn.textContent = originalLabel;
+          }
+        }
+      });
+    }
+
+    if (confirmBtn) {
+      confirmBtn.addEventListener('click', async function(){
+        if (confirmBtn.disabled) return;
+
+        if (!orderId) {
+          const latest = await fetchLatestOrder();
+          if (!latest) {
+            alert('대기 중인 주문이 없습니다.');
+            return;
+          }
+          applyOrderState(latest);
+        }
+
+        if (!orderId) {
+          alert('대기 중인 주문이 없습니다.');
+          return;
+        }
+
+        const originalLabel = confirmBtn.textContent.trim() || '구매확정';
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = '확정 처리중...';
+
+        let confirmedOrder = null;
+
+        try {
+          const resp = await fetch(`/api/orders/${orderId}/confirm/`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest',
+              'X-CSRFToken': csrftoken
+            }
+          });
+
+          if (resp.ok) {
+            confirmedOrder = await resp.json();
+            applyOrderState(confirmedOrder);
+            alert('구매가 확정되었습니다.');
+          } else {
+            let message = '구매확정 처리 중 오류가 발생했습니다.';
+            try {
+              const data = await resp.json();
+              if (data && typeof data.detail === 'string') {
+                message = data.detail;
+              }
+            } catch (_) {}
+            alert(message);
+          }
+        } catch (error) {
+          console.error(error);
+          alert('구매확정 처리 중 오류가 발생했습니다.');
+        } finally {
+          if (!confirmedOrder) {
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = originalLabel;
+          }
+        }
+      });
+    }
+
+    const initialData = hasOrder ? {
+      id: orderId,
+      escrow_state: orderState || (orderConfirmed ? 'RELEASED' : 'HELD'),
+      confirmation_code: confirmationCode
+    } : null;
+    applyOrderState(initialData);
+
     scrollToBottom();
   })();
 </script>

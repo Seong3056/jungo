@@ -9,5 +9,17 @@
 @import 'pages/chat.css';
 @import 'utilities/responsive.css';
 
-/* End of main imports */
+/* End of main i/* mobile theme toggle visibility */
+.mobile-toggle {
+  display: none;
+}
 
+@media (max-width: 639px) {
+  .desktop-only {
+    display: none;
+  }
+
+  .mobile-toggle {
+    display: inline-flex;
+  }
+}

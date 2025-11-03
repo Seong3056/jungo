@@ -12,4 +12,5 @@ class Order(models.Model):
     buyer = models.ForeignKey(User, on_delete=models.PROTECT, related_name='orders')
     amount = models.PositiveIntegerField()
     escrow_state = models.CharField(max_length=16, choices=EscrowState.choices, default=EscrowState.HELD)
+    confirmation_code = models.CharField(max_length=4, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)

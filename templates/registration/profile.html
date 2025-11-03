@@ -37,8 +37,11 @@
           {% endif %}
         </div>
         <div class="chat-row-right">
-          <h3 class="chat-title">{{ room.listing.title }}</h3>
-          <p class="chat-user">{{ room.other_user_name }} 님과 대화 중</p>
+          {% if room.last_message %}
+          <p class="chat-user">{{ room.last_message.sender.username }}: {{ room.last_message.content }}</p>
+          {% else %}
+          <p class="chat-user">{{ room.other_user_name }}: 아직 메시지가 없습니다.</p>
+          {% endif %}
         </div>
       </a>
       {% endfor %}
