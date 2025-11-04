@@ -29,16 +29,6 @@
   window.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-theme-set]').forEach(btn => btn.addEventListener('click', () => save(btn.dataset.themeSet)));
     load();
-    document.querySelectorAll('.toast').forEach((t, i) => {
-      setTimeout(() => {
-        t.style.animation = 'toastOut .45s ease-in forwards';
-        setTimeout(() => t.remove(), 450);
-      }, 3000 + i * 120);
-      t.addEventListener('click', () => {
-        t.style.animation = 'toastOut .25s ease-in forwards';
-        setTimeout(() => t.remove(), 250);
-      });
-    });
   });
 })();
 // ✅ 모바일 단일 토글 버튼

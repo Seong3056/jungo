@@ -32,7 +32,7 @@
       </div>
 
       {% if request.user.is_authenticated %}
-      <a class="btn" href="{% url 'listing_create' %}">상품 등록</a>
+      <a class="btn" href="{% url 'listing_create' %}">상품등록</a>
       <a class="btn" href="{% url 'profile' %}">내 계정</a>
       <a class="btn" href="{% url 'logout' %}">로그아웃</a>
       {% else %}

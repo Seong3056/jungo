@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}상품 등록{% endblock %}
 
 {% block content %}
@@ -33,26 +34,10 @@
   </div>
 </div>
 
-<script>
-document.addEventListener("DOMContentLoaded",()=>{
-  const input=document.querySelector('input[type="file"][name="image"]');
-  const preview=document.getElementById("preview-container");
-  if(!input) return;
-  input.addEventListener("change",(e)=>{
-    preview.innerHTML="";
-    const file=e.target.files[0];
-    if(!file) return;
-    if(!file.type.startsWith("image/")) { alert("이미지 파일만 업로드할 수 있습니다."); input.value=""; return; }
-    const r=new FileReader();
-    r.onload=ev=>{
-      const img=new Image();
-      img.src=ev.target.result;
-      img.style.width="140px"; img.style.height="140px"; img.style.objectFit="cover";
-      img.style.borderRadius="12px"; img.style.border="1px solid rgba(255,255,255,0.3)";
-      preview.appendChild(img);
-    };
-    r.readAsDataURL(file);
-  });
-});
-</script>
+
+{% endblock %}
+
+{% block scripts %}
+  {{ block.super }}
+  <script src="{% static 'js/listing_create.js' %}" defer></script>
 {% endblock %}

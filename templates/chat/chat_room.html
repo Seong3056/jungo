@@ -52,151 +52,75 @@
     {% endfor %}
     </div>
 
-        <form method="POST" class="chat-form chat-form--spaced">
+            <form method="POST" class="chat-form chat-form--spaced">
       {% csrf_token %}
       <textarea name="content" placeholder="메시지를 입력하세요" required></textarea>
-      <div class="chat-form__actions">
+      <div class="chat-form__actions"
+           data-has-order="{% if order %}true{% else %}false{% endif %}"
+           data-order-confirmed="{% if order and order.escrow_state == 'RELEASED' %}true{% else %}false{% endif %}"
+           data-order-id="{% if order %}{{ order.id }}{% endif %}"
+           data-order-state="{% if order %}{{ order.escrow_state }}{% endif %}"
+           data-initial-code="{% if order and order.confirmation_code %}{{ order.confirmation_code }}{% endif %}"
+           data-listing-id="{{ listing.id }}"
+           data-buyer-id="{{ room.buyer.id }}"
+           data-is-seller="{% if request.user == room.seller %}true{% else %}false{% endif %}"
+           data-is-buyer="{% if request.user == room.buyer %}true{% else %}false{% endif %}">
         <button type="submit" class="btn chat-form__send">보내기</button>
-        {% if request.user != listing.seller %}
+        {% if request.user == room.buyer %}
         <button type="button"
                 class="btn chat-form__purchase"
                 data-listing-id="{{ listing.id }}"
-                data-amount="{{ listing.price }}">
-          구매하기
+                data-amount="{{ listing.price }}"
+                {% if order %}disabled{% endif %}>
+          {% if order %}
+            {% if order.escrow_state == 'RELEASED' %}
+              구매완료
+            {% else %}
+              구매요청됨
+            {% endif %}
+          {% else %}
+            구매하기
+          {% endif %}
+        </button>
+        {% endif %}
+        {% if request.user == room.seller %}
+        <button type="button"
+                class="btn chat-form__confirm"
+                {% if order %}data-order-id="{{ order.id }}"{% endif %}
+                {% if not order or order.escrow_state == 'RELEASED' %}disabled{% endif %}>
+          {% if order and order.escrow_state == 'RELEASED' %}
+            구매확정 완료
+          {% else %}
+            구매확정
+          {% endif %}
         </button>
         {% endif %}
       </div>
     </form>
-  </section>
+    {% if request.user == room.buyer %}
+    <div class="chat-purchase-code"
+         data-empty-text="구매를 진행하면 수령 확인 코드를 받게 됩니다."
+         data-pending-text="판매자의 구매확정을 기다리고 있습니다."
+         data-complete-prefix="수령 확인 코드: "
+         data-initial-code="{% if order and order.confirmation_code %}{{ order.confirmation_code }}{% endif %}"
+         data-initial-state="{% if order %}{% if order.escrow_state == 'RELEASED' %}released{% else %}pending{% endif %}{% else %}none{% endif %}">
+      {% if order %}
+        {% if order.escrow_state == 'RELEASED' and order.confirmation_code %}
+          수령 확인 코드: <span class="chat-purchase-code__value">{{ order.confirmation_code }}</span>
+        {% else %}
+          판매자의 구매확정을 기다리고 있습니다.
+        {% endif %}
+      {% else %}
+        구매를 진행하면 수령 확인 코드를 받게 됩니다.
+      {% endif %}
+    </div>
+    {% endif %}
+</section>
 </div>
-<script>
-  (function(){
-    const form = document.querySelector('.chat-form');
-    const messagesEl = document.getElementById('chat-messages');
-    if (!form || !messagesEl) return;
 
-    const textarea = form.querySelector('textarea[name="content"]');
-    if (!textarea) return;
+{% endblock %}
 
-    const csrfInput = form.querySelector('input[name="csrfmiddlewaretoken"]');
-    const csrftoken = csrfInput ? csrfInput.value : '';
-    const submitButton = form.querySelector('.chat-form__send');
-    const purchaseBtn = form.querySelector('.chat-form__purchase');
-
-    textarea.addEventListener('keydown', function(e){
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        if (typeof form.requestSubmit === 'function') {
-          form.requestSubmit();
-        } else if (submitButton) {
-          submitButton.click();
-        }
-      }
-    });
-
-    function scrollToBottom(){
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-    }
-
-    function makeMessageNode(data){
-      const row = document.createElement('div');
-      row.className = 'message-row me';
-      const msg = document.createElement('div');
-      msg.className = 'message me';
-      msg.innerHTML = `${data.content}<div class="timestamp">${data.timestamp}</div>`;
-      row.appendChild(msg);
-      return row;
-    }
-
-    form.addEventListener('submit', async function(e){
-      e.preventDefault();
-      const content = textarea.value.trim();
-      if (!content) return;
-
-      try{
-        const resp = await fetch(window.location.href, {
-          method: 'POST',
-          headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': csrftoken,
-            'Accept': 'application/json',
-            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
-          },
-          body: new URLSearchParams({content})
-        });
-
-        if (resp.ok) {
-          const data = await resp.json();
-          const node = makeMessageNode(data);
-          messagesEl.appendChild(node);
-          textarea.value = '';
-          scrollToBottom();
-        } else {
-          form.removeEventListener('submit', arguments.callee);
-          form.submit();
-        }
-      } catch (err){
-        console.error(err);
-        form.removeEventListener('submit', arguments.callee);
-        form.submit();
-      }
-    });
-
-    if (purchaseBtn) {
-      purchaseBtn.addEventListener('click', async function(){
-        const listingId = purchaseBtn.dataset.listingId;
-        const amount = purchaseBtn.dataset.amount;
-        if (!listingId || !amount) return;
-
-        const originalLabel = purchaseBtn.textContent.trim() || '구매하기';
-        purchaseBtn.disabled = true;
-        purchaseBtn.textContent = '구매 진행중...';
-
-        try {
-          const resp = await fetch('/api/orders/', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              'X-Requested-With': 'XMLHttpRequest',
-              'X-CSRFToken': csrftoken
-            },
-            body: JSON.stringify({
-              listing: Number(listingId),
-              amount: Number(amount)
-            })
-          });
-
-          if (resp.ok) {
-            alert('구매 요청이 접수되었습니다.');
-          } else {
-            let message = '구매 요청 처리 중 오류가 발생했습니다.';
-            try {
-              const data = await resp.json();
-              if (data) {
-                if (typeof data.detail === 'string') {
-                  message = data.detail;
-                } else {
-                  const firstValue = Object.values(data)[0];
-                  if (Array.isArray(firstValue) && firstValue.length) {
-                    message = firstValue[0];
-                  }
-                }
-              }
-            } catch (_) {}
-            alert(message);
-          }
-        } catch (error) {
-          console.error(error);
-          alert('구매 요청 처리 중 오류가 발생했습니다.');
-        } finally {
-          purchaseBtn.disabled = false;
-          purchaseBtn.textContent = originalLabel;
-        }
-      });
-    }
-
-    scrollToBottom();
-  })();
-</script>
+{% block scripts %}
+  {{ block.super }}
+  <script src="{% static 'js/chat_room.js' %}" defer></script>
 {% endblock %}

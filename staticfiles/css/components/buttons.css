@@ -8,11 +8,7 @@
 	color: var(--text);
 	transition: background .2s ease;
 }
-.container > .btn {
-	margin-top: 10px;
-	width: 100%;
-	text-align: center;
-}
+
 .btn:hover { background: rgba(255, 255, 255, .7); }
 .btn--active { outline: 2px solid var(--accent); }
 
