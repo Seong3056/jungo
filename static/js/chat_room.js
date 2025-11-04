@@ -1,78 +1,124 @@
+
 (function () {
   const form = document.querySelector('.chat-form');
   const messagesEl = document.getElementById('chat-messages');
   if (!form || !messagesEl) return;
 
   const textarea = form.querySelector('textarea[name="content"]');
-  if (!textarea) return;
-
   const csrfInput = form.querySelector('input[name="csrfmiddlewaretoken"]');
   const csrftoken = csrfInput ? csrfInput.value : '';
+  const userId = Number(form.dataset.userId || '0');
+  const roomId = form.dataset.roomId;
 
-  const submitButton = form.querySelector('.chat-form__send');
-  const purchaseBtn = form.querySelector('.chat-form__purchase');
-  const confirmBtn = form.querySelector('.chat-form__confirm');
-  const actionsEl = form.querySelector('.chat-form__actions');
-  const purchaseCodeEl = document.querySelector('.chat-purchase-code');
-  const POLL_INTERVAL = 5000;
+  const socketScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+  const socketUrl = `${socketScheme}://${window.location.host}/ws/chat/${roomId}/`;
+  const chatSocket = new WebSocket(socketUrl);
 
-  const listingId = actionsEl ? actionsEl.dataset.listingId : null;
-  const buyerId = actionsEl ? actionsEl.dataset.buyerId : null;
-  const isSeller = actionsEl ? actionsEl.dataset.isSeller === 'true' : false;
-  const isBuyer = actionsEl ? actionsEl.dataset.isBuyer === 'true' : false;
-
-  let orderId = actionsEl && actionsEl.dataset.orderId ? actionsEl.dataset.orderId : null;
-  let hasOrder = actionsEl ? actionsEl.dataset.hasOrder === 'true' : false;
-  let orderState = actionsEl ? actionsEl.dataset.orderState || '' : '';
-  let orderConfirmed = actionsEl ? actionsEl.dataset.orderConfirmed === 'true' : false;
-  let confirmationCode = actionsEl ? actionsEl.dataset.initialCode || '' : '';
-
-  let sellerPollTimer = null;
-  let buyerPollTimer = null;
-  let buyerNotifiedForCode = orderConfirmed && !!confirmationCode;
-
-  const codeTexts = purchaseCodeEl
-    ? {
-        empty: purchaseCodeEl.dataset.emptyText || '',
-        pending: purchaseCodeEl.dataset.pendingText || '',
-        completePrefix: purchaseCodeEl.dataset.completePrefix || ''
-      }
-    : null;
-
-  textarea.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (typeof form.requestSubmit === 'function') {
-        form.requestSubmit();
-      } else if (submitButton) {
-        submitButton.click();
-      }
+  chatSocket.addEventListener('open', scrollToBottom);
+  chatSocket.addEventListener('message', (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      if (data.type !== 'chat.message') return;
+      appendMessage({
+        message: data.message,
+        sender: data.sender,
+        senderId: Number(data.sender_id),
+        timestamp: data.timestamp,
+      });
+    } catch (error) {
+      console.error('Failed to parse websocket payload', error);
     }
   });
+  chatSocket.addEventListener('close', () => console.warn('Chat socket closed.'));
+  chatSocket.addEventListener('error', (err) => console.error('Chat socket error', err));
+
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const message = textarea.value.trim();
+    if (!message) return;
+    if (chatSocket.readyState !== WebSocket.OPEN) {
+      alert('연결이 끊어졌습니다. 페이지를 새로고침 해주세요.');
+      return;
+    }
+    chatSocket.send(JSON.stringify({ message }));
+    textarea.value = '';
+  });
+
+  textarea.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      form.requestSubmit();
+    }
+  });
+
+  function appendMessage({ message, sender, senderId, timestamp }) {
+    const isSelf = senderId === userId;
+    const row = document.createElement('div');
+    row.className = `message-row ${isSelf ? 'me' : 'other'}`;
+
+    const bubble = document.createElement('div');
+    bubble.className = `message ${isSelf ? 'me' : 'other'}`;
+
+    const textEl = document.createElement('div');
+    textEl.className = 'message__text';
+    textEl.textContent = message;
+
+    const timeEl = document.createElement('div');
+    timeEl.className = 'timestamp';
+    timeEl.textContent = timestamp;
+
+    bubble.appendChild(textEl);
+    bubble.appendChild(timeEl);
+    row.appendChild(bubble);
+    messagesEl.appendChild(row);
+    scrollToBottom();
+  }
 
   function scrollToBottom() {
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
-  function makeMessageNode(data) {
-    const row = document.createElement('div');
-    row.className = 'message-row me';
-    const msg = document.createElement('div');
-    msg.className = 'message me';
-    msg.innerHTML = `${data.content}<div class="timestamp">${data.timestamp}</div>`;
-    row.appendChild(msg);
-    return row;
-  }
+  // ------------------------------------------------------------------
+  // 주문/확정 로직 (기존 REST 기반 흐름 유지)
+  // ------------------------------------------------------------------
+  const actionsEl = document.querySelector('.chat-form__actions');
+  if (!actionsEl) return;
 
-  function setOrderState(orderData) {
+  const purchaseBtn = document.querySelector('.chat-form__purchase');
+  const confirmBtn = document.querySelector('.chat-form__confirm');
+  const purchaseCodeEl = document.querySelector('.chat-purchase-code');
+
+  const listingId = actionsEl.dataset.listingId || null;
+  const buyerId = actionsEl.dataset.buyerId || null;
+  const isSeller = actionsEl.dataset.isSeller === 'true';
+  const isBuyer = actionsEl.dataset.isBuyer === 'true';
+
+  let orderId = actionsEl.dataset.orderId || null;
+  let hasOrder = actionsEl.dataset.hasOrder === 'true';
+  let orderState = actionsEl.dataset.orderState || '';
+  let orderConfirmed = actionsEl.dataset.orderConfirmed === 'true';
+  let confirmationCode = actionsEl.dataset.initialCode || '';
+  let buyerNotifiedForCode = orderConfirmed && !!confirmationCode;
+  let sellerPollTimer = null;
+  let buyerPollTimer = null;
+
+  const codeTexts = purchaseCodeEl
+    ? {
+        empty: purchaseCodeEl.dataset.emptyText || '',
+        pending: purchaseCodeEl.dataset.pendingText || '',
+        completePrefix: purchaseCodeEl.dataset.completePrefix || '',
+      }
+    : null;
+
+  function setOrderData(order) {
     if (!actionsEl) return;
-    if (orderData && orderData.id) {
-      orderId = String(orderData.id);
+    if (order && order.id) {
+      orderId = String(order.id);
       hasOrder = true;
-      orderState = orderData.escrow_state || '';
+      orderState = order.escrow_state || '';
       orderConfirmed = orderState === 'RELEASED';
-      if (typeof orderData.confirmation_code === 'string' && orderData.confirmation_code.length) {
-        confirmationCode = orderData.confirmation_code;
+      if (order.confirmation_code) {
+        confirmationCode = order.confirmation_code;
       }
       actionsEl.dataset.orderId = orderId;
       actionsEl.dataset.hasOrder = 'true';
@@ -85,12 +131,12 @@
       orderState = '';
       orderConfirmed = false;
       confirmationCode = '';
+      buyerNotifiedForCode = false;
       actionsEl.dataset.orderId = '';
       actionsEl.dataset.hasOrder = 'false';
       actionsEl.dataset.orderConfirmed = 'false';
       actionsEl.dataset.orderState = '';
       actionsEl.dataset.initialCode = '';
-      buyerNotifiedForCode = false;
     }
   }
 
@@ -111,9 +157,9 @@
     }
   }
 
-  function applyOrderState(orderData) {
+  function applyOrderState(order) {
     const prevConfirmed = orderConfirmed;
-    setOrderState(orderData);
+    setOrderData(order);
 
     if (purchaseBtn) {
       if (!hasOrder) {
@@ -163,29 +209,23 @@
     try {
       const params = new URLSearchParams({ listing: listingId, buyer: buyerId });
       const resp = await fetch(`/api/orders/?${params.toString()}`, {
-        headers: { Accept: 'application/json' }
+        headers: { Accept: 'application/json' },
       });
       if (!resp.ok) return null;
       const data = await resp.json();
-      let orders = [];
-      if (Array.isArray(data)) {
-        orders = data;
-      } else if (data && Array.isArray(data.results)) {
-        orders = data.results;
-      }
-      if (orders.length) {
-        orders.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-        return orders[0];
-      }
+      const results = Array.isArray(data) ? data : Array.isArray(data.results) ? data.results : [];
+      if (!results.length) return null;
+      results.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      return results[0];
     } catch (error) {
-      console.error(error);
+      console.error('Failed to fetch order info', error);
+      return null;
     }
-    return null;
   }
 
   function scheduleSellerPoll() {
     if (!isSeller || !confirmBtn) return;
-    if (orderConfirmed) {
+    if (!hasOrder || orderConfirmed) {
       if (sellerPollTimer) {
         clearTimeout(sellerPollTimer);
         sellerPollTimer = null;
@@ -201,7 +241,7 @@
       } else {
         scheduleSellerPoll();
       }
-    }, POLL_INTERVAL);
+    }, 5000);
   }
 
   function scheduleBuyerPoll() {
@@ -222,53 +262,19 @@
       } else {
         scheduleBuyerPoll();
       }
-    }, POLL_INTERVAL);
+    }, 5000);
   }
 
-  form.addEventListener('submit', async function (e) {
-    e.preventDefault();
-    const content = textarea.value.trim();
-    if (!content) return;
-
-    try {
-      const resp = await fetch(window.location.href, {
-        method: 'POST',
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-CSRFToken': csrftoken,
-          Accept: 'application/json',
-          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
-        },
-        body: new URLSearchParams({ content })
-      });
-
-      if (resp.ok) {
-        const data = await resp.json();
-        const node = makeMessageNode(data);
-        messagesEl.appendChild(node);
-        textarea.value = '';
-        scrollToBottom();
-      } else {
-        form.removeEventListener('submit', arguments.callee);
-        form.submit();
-      }
-    } catch (err) {
-      console.error(err);
-      form.removeEventListener('submit', arguments.callee);
-      form.submit();
-    }
-  });
-
   if (purchaseBtn) {
-    purchaseBtn.addEventListener('click', async function () {
+    purchaseBtn.addEventListener('click', async () => {
       if (purchaseBtn.disabled) return;
-      const listingIdAttr = purchaseBtn.dataset.listingId;
+      const listingAttr = purchaseBtn.dataset.listingId;
       const amountAttr = purchaseBtn.dataset.amount;
-      if (!listingIdAttr || !amountAttr) return;
+      if (!listingAttr || !amountAttr) return;
 
       const originalLabel = purchaseBtn.textContent.trim() || '구매하기';
       purchaseBtn.disabled = true;
-      purchaseBtn.textContent = '구매 진행중...';
+      purchaseBtn.textContent = '구매 진행 중...';
 
       let createdOrder = null;
 
@@ -279,12 +285,12 @@
             'Content-Type': 'application/json',
             Accept: 'application/json',
             'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': csrftoken
+            'X-CSRFToken': csrftoken,
           },
           body: JSON.stringify({
-            listing: Number(listingIdAttr),
-            amount: Number(amountAttr)
-          })
+            listing: Number(listingAttr),
+            amount: Number(amountAttr),
+          }),
         });
 
         if (resp.ok) {
@@ -305,7 +311,9 @@
                 }
               }
             }
-          } catch (_) { }
+          } catch (_) {
+            /* ignore */
+          }
           alert(message);
         }
       } catch (error) {
@@ -321,7 +329,7 @@
   }
 
   if (confirmBtn) {
-    confirmBtn.addEventListener('click', async function () {
+    confirmBtn.addEventListener('click', async () => {
       if (confirmBtn.disabled) return;
 
       if (!orderId) {
@@ -340,7 +348,7 @@
 
       const originalLabel = confirmBtn.textContent.trim() || '구매확정';
       confirmBtn.disabled = true;
-      confirmBtn.textContent = '확정 처리중...';
+      confirmBtn.textContent = '확정 처리 중...';
 
       let confirmedOrder = null;
 
@@ -351,8 +359,8 @@
             'Content-Type': 'application/json',
             Accept: 'application/json',
             'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': csrftoken
-          }
+            'X-CSRFToken': csrftoken,
+          },
         });
 
         if (resp.ok) {
@@ -366,7 +374,9 @@
             if (data && typeof data.detail === 'string') {
               message = data.detail;
             }
-          } catch (_) { }
+          } catch (_) {
+            /* ignore */
+          }
           alert(message);
         }
       } catch (error) {
@@ -381,14 +391,14 @@
     });
   }
 
-  const initialData = hasOrder
+  const initialOrder = hasOrder
     ? {
         id: orderId,
         escrow_state: orderState || (orderConfirmed ? 'RELEASED' : 'HELD'),
-        confirmation_code: confirmationCode
+        confirmation_code: confirmationCode,
       }
     : null;
-  applyOrderState(initialData);
-
+  applyOrderState(initialOrder);
+  updateCodeDisplay(false);
   scrollToBottom();
 })();

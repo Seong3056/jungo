@@ -3,7 +3,7 @@
 	padding: 10px 12px;
 	border-radius: 12px;
 	border: 1px solid rgba(255, 255, 255, .25);
-	background: rgba(255, 255, 255, .5);
+	background: rgb(255 0 0 / 10%);
 	outline: none;
 	min-width: 200px;
 	color: var(--text);
@@ -16,3 +16,105 @@
 
 .pill { display:inline-block; padding:6px 10px; border-radius:999px; background:#ddd; color:#333; font-weight:700; font-size:12px; }
 
+.form-card {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 32px;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.form-card__header h2 {
+    font-size: 26px;
+    font-weight: 800;
+    margin-bottom: 6px;
+}
+
+.form-card__header p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.form-card__errors {
+    color: #ff6b6b;
+    background: rgba(255, 0, 0, 0.12);
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 14px;
+}
+
+.form-card__form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.form-card__preview {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-field label {
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.form-field input,
+.form-field textarea,
+.form-field select {
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, .25);
+    background: rgb(255 0 0 / 10%);
+    color: var(--text);
+    outline: none;
+}
+
+.form-field textarea {
+    min-height: 140px;
+    resize: none;
+}
+
+.form-card__actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 8px;
+}
+
+.form-card__actions .btn {
+    min-width: 120px;
+}
+
+:root[data-theme='dark'] .form-field input,
+:root[data-theme='dark'] .form-field textarea,
+:root[data-theme='dark'] .form-field select {
+    border-color: rgba(255,255,255,.08);
+    background: rgba(255,255,255,.08);
+}
+
+@media (max-width: 639px) {
+    .form-card {
+        padding: 24px 18px;
+        border-radius: 16px;
+    }
+
+    .form-card__actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .form-card__actions .btn {
+        width: 100%;
+    }
+}

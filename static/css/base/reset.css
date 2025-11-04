@@ -134,3 +134,7 @@ a {
 	color: inherit;
 }
 
+textarea {
+	resize: none;
+	font-size: 16px;
+}

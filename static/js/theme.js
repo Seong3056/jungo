@@ -30,13 +30,14 @@
     document.querySelectorAll('[data-theme-set]').forEach(btn => btn.addEventListener('click', () => save(btn.dataset.themeSet)));
     load();
   });
+  const mobileToggle = document.getElementById("mobile-theme-toggle");
+  if (mobileToggle) {
+    mobileToggle.addEventListener("click", () => {
+      console.log('click');
+
+      const current = localStorage.getItem(KEY) || 'system';
+      const next = current === 'dark' ? 'light' : 'dark';
+      save(next);
+    });
+  }
 })();
-// ✅ 모바일 단일 토글 버튼
-const mobileToggle = document.getElementById("mobile-theme-toggle");
-if (mobileToggle) {
-  mobileToggle.addEventListener("click", () => {
-    const current = localStorage.getItem(KEY) || 'system';
-    const next = current === 'dark' ? 'light' : 'dark';
-    save(next);
-  });
-}

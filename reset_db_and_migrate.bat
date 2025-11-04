@@ -20,21 +20,20 @@ if exist ".venv\Scripts\activate" (
 )
 
 :: 3️⃣ 기존 DB 삭제
-@REM if exist "db.sqlite3" (
-@REM     del /f /q db.sqlite3
-@REM     echo 🗑️ 기존 db.sqlite3 파일 삭제 완료
-@REM ) else (
-@REM     echo (DB 파일이 없습니다 — 새로 생성합니다.)
-@REM )
-
-:: 4️⃣ 마이그레이션 폴더 내 기존 파일 제거
-@REM for %%a in (chat listings users orders verification) do (
-@REM     if exist %%a\migrations (
-@REM         del /q %%a\migrations\0*.py 2>nul
-@REM         del /q %%a\migrations\*.pyc 2>nul
-@REM         echo 🧹 %%a\migrations 초기화 완료
-@REM     )
-@REM )
+if exist "db.sqlite3" (
+    del /f /q db.sqlite3
+    echo 🗑️ 기존 db.sqlite3 파일 삭제 완료
+) else (
+    echo (DB 파일이 없습니다 — 새로 생성합니다.)
+ )
+:: 4️⃣ 기존 마이그레이션 파일 삭제
+ for %%a in (chat listings users orders verification) do (
+     if exist %%a\migrations (
+         del /q %%a\migrations\0*.py 2>nul
+         del /q %%a\migrations\*.pyc 2>nul
+        echo 🧹 %%a\migrations 초기화 완료
+    )
+)
 
 :: 5️⃣ 마이그레이션 생성 및 적용
 echo.
