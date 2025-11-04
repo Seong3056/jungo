@@ -10,7 +10,7 @@ from .serializers import ListingSerializer
 class ListingListView(ListView):
     model = Listing
     paginate_by = 12
-    template_name = 'listings_list.html'
+    template_name = 'listings/listings_list.html'
     def get_queryset(self):
         qs = super().get_queryset().order_by('-created_at')
         q = self.request.GET.get('q')
@@ -21,7 +21,7 @@ class ListingListView(ListView):
 class ListingCreateView(LoginRequiredMixin, CreateView):
     model = Listing
     form_class = ListingForm
-    template_name = 'listing_create.html'
+    template_name = 'listings/listing_create.html'
     success_url = reverse_lazy('listing_list')
     def form_valid(self, form):
         form.instance.seller = self.request.user
@@ -29,7 +29,7 @@ class ListingCreateView(LoginRequiredMixin, CreateView):
 
 class ListingDetailView(DetailView):
     model = Listing
-    template_name = 'listing_detail.html'
+    template_name = 'listings/listing_detail.html'
 
 class ListingViewSet(viewsets.ModelViewSet):
     queryset = Listing.objects.all().order_by('-created_at')

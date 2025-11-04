@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load humanize %}
 {% block title %}내 프로필{% endblock %}
 {% block content %}
 <div class="container profile-container">
@@ -18,7 +19,7 @@
 
         <div class="item-info">
           <h3>{{ item.title }}</h3>
-          <p class="price">{{ item.price }}원</p>
+          <p class="price">{{ item.price|intcomma }}원</p>
         </div>
       </a>
       {% endfor %}

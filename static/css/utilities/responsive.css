@@ -11,10 +11,12 @@
 	.product-info h3 { font-size: 15px; }
 	.product-info .desc { font-size: 13px; height: auto; }
 	.product-grid { grid-template-columns: 1fr; }
+	.item-grid { grid-template-columns: 1fr; padding-right: 0; max-height: none; overflow: visible; }
 }
 
 @media (min-width: 640px) and (max-width: 1023px) {
 	.product-grid { grid-template-columns: repeat(2, 1fr); }
+	.item-grid { grid-template-columns: repeat(2, 1fr); padding-right: 0; max-height: none; overflow: visible; }
 	.product-image { height: 190px; }
 	.hero__title { font-size: 36px; }
 	.input { min-width: 240px; }
