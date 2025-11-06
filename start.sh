@@ -9,6 +9,9 @@ if [ ! -x "$0" ]; then
     echo "✅ 권한 부여 완료"
 fi
 
+# 💡 추가: 실행 폴더 기준으로 경로 고정
+cd "$(dirname "$0")"
+
 echo "=============================================="
 echo " Jungo 서버 통합 실행 (.env + 로컬 ngrok 토큰)"
 echo "=============================================="
@@ -24,11 +27,7 @@ echo "✅ Python3 감지됨"
 # ===== 2️⃣ 가상환경 생성 및 활성화 =====
 if [ ! -d ".venv" ]; then
     echo "🌱 가상환경 생성 중..."
-    python3 -m venv .venv
-    if [ $? -ne 0 ]; then
-        echo "❌ 가상환경 생성 실패."
-        exit 1
-    fi
+    python3 -m venv .venv || { echo "❌ 가상환경 생성 실패."; exit 1; }
 fi
 
 source .venv/bin/activate
@@ -43,7 +42,8 @@ else
 fi
 
 # ===== 4️⃣ 기본값 설정 =====
-DB_PATH="${DB_PATH:-$(pwd)/db.sqlite3}"
+SCRIPT_DIR="$(dirname "$(realpath "$0")")"
+DB_PATH="${DB_PATH:-$SCRIPT_DIR/db.sqlite3}"
 UNO_PORT="${UNO_PORT:-/dev/ttyACM0}"
 UNO_BAUD="${UNO_BAUD:-9600}"
 
@@ -68,20 +68,15 @@ echo "✅ 패키지 설치 완료"
 echo "🧱 데이터베이스 마이그레이션 실행..."
 python manage.py makemigrations
 python manage.py migrate
-
-# ===== 7️⃣ 정적 파일 수집 =====
-echo "🎨 collectstatic 실행..."
 python manage.py collectstatic --noinput
 
-# ===== 8️⃣ Daphne 서버 자동 재시작 =====
+# ===== 7️⃣ Daphne 서버 자동 재시작 =====
 echo "🚦 Daphne 서버 상태 확인 중..."
 EXIST_PID=$(pgrep -f "daphne -b 0.0.0.0 -p 8000")
-
 if [ -n "$EXIST_PID" ]; then
     echo "⚠️ 기존 Daphne 서버 종료 중 (PID: $EXIST_PID)"
     kill -9 "$EXIST_PID"
-    sleep 1
-    echo "✅ Daphne 서버 종료 완료"
+    sleep 0.5
 fi
 
 echo "🚀 새 Daphne 서버 실행 중..."
@@ -89,16 +84,13 @@ nohup python -m daphne -b 0.0.0.0 -p 8000 core.asgi:application > server.log 2>&
 SERVER_PID=$!
 echo "✅ Daphne PID: $SERVER_PID"
 
-# ===== 9️⃣ RaspberryPi + Arduino 통신 자동 재시작 =====
+# ===== 8️⃣ RaspberryPi + Arduino 통신 자동 재시작 =====
 PI_SCRIPT="embedded/raspberry_pi.py"
-echo "🤖 RaspberryPi 통신 프로세스 확인 중..."
 EXIST_PI=$(pgrep -f "raspberry_pi.py")
-
 if [ -n "$EXIST_PI" ]; then
     echo "⚠️ 기존 raspberry_pi.py 종료 중 (PID: $EXIST_PI)"
     kill -9 "$EXIST_PI"
-    sleep 1
-    echo "✅ 이전 프로세스 종료 완료"
+    sleep 0.5
 fi
 
 if [ -f "$PI_SCRIPT" ]; then
@@ -113,12 +105,12 @@ else
     echo "⚠️ $PI_SCRIPT 파일을 찾을 수 없습니다."
 fi
 
-# ===== 🔟 ngrok 자동 실행 (로컬 설정 사용) =====
+# ===== 9️⃣ ngrok 자동 실행 (로컬 설정 사용) =====
 if command -v ngrok &> /dev/null; then
     EXIST_NGROK=$(pgrep -f "ngrok http 8000")
     if [ -n "$EXIST_NGROK" ]; then
         kill -9 "$EXIST_NGROK"
-        sleep 1
+        sleep 0.5
     fi
 
     if [ -f "$HOME/.config/ngrok/ngrok.yml" ]; then
