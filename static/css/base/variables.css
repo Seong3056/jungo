@@ -1,0 +1,31 @@
+/* variables.css (extracted) */
+:root {
+	--bg1: #f7f7f7;
+	--bg2: #eaeaea;
+	--white: 255, 255, 255;
+	--text: #222;
+	--muted: #666;
+	--accent: #999;
+	--shadow: 0 20px 40px rgba(0, 0, 0, .08);
+	--glass-bg: rgba(var(--white), .4);
+	--glass-br: 1px solid rgba(255, 255, 255, .4);
+	--success: #22c55e;
+	--error: #ef4444;
+	--info: #3b82f6;
+}
+
+:root[data-theme='dark'] {
+	--bg1: #1a1a1a;
+	--bg2: #101010;
+	--white: 20, 20, 20;
+	--text: #eee;
+	--muted: #aaa;
+	--accent: #555;
+	--shadow: 0 24px 48px rgba(0, 0, 0, .45);
+	--glass-bg: rgba(40, 40, 40, .6);
+	--glass-br: 1px solid rgba(255, 255, 255, .1);
+	--success: #16a34a;
+	--error: #dc2626;
+	--info: #2563eb;
+}
+

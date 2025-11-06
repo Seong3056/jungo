@@ -1,0 +1,25 @@
+/* buttons */
+.btn {
+	padding: 10px 14px;
+	border-radius: 12px;
+	border: 1px solid rgba(255, 255, 255, .25);
+	background: rgba(255, 255, 255, .5);
+	cursor: pointer;
+	color: var(--text);
+	transition: background .2s ease;
+}
+.container > .btn {
+	margin-top: 10px;
+	width: 100%;
+	text-align: center;
+}
+.btn:hover { background: rgba(255, 255, 255, .7); }
+.btn--active { outline: 2px solid var(--accent); }
+
+:root[data-theme='dark'] .btn {
+	border-color: rgba(255,255,255,.08);
+	background: rgba(255,255,255,.08);
+}
+
+.theme { display:flex; gap:6px; align-items:center; }
+

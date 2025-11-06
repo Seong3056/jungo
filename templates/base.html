@@ -1,0 +1,54 @@
+{% load static %}
+<!doctype html>
+<html lang="ko" data-theme="light">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}비대면중고{% endblock %}</title>
+  <link rel="icon" href="{% static 'favicon.ico' %}" />
+  <link rel="stylesheet" href="{% static 'css/main.css' %}" />
+  <script src="{% static 'js/theme.js' %}" defer></script>
+  {% block head %}{% endblock %}
+</head>
+
+<body class="bg">
+  <header class="glass glass--header">
+    <div class="brand">
+      <div class="brand__icon">👜</div>
+      <div class="brand__name"><a href="{% url 'home' %}" style="text-decoration:none;color:inherit;">비대면중고</a></div>
+    </div>
+    <form class="search" method="get" action="{% url 'listing_list' %}">
+      <input class="input" name="q" placeholder="상품 검색..." />
+      <button class="btn desktop-only">검색</button>
+    </form>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <div class="theme">
+        <button class="btn theme__btn desktop-only" data-theme-set="light" title="라이트">☀️</button>
+        <button class="btn theme__btn desktop-only" data-theme-set="dark" title="다크">🌙</button>
+        <button class="btn theme__btn desktop-only" data-theme-set="system" title="시스템">🖥️</button>
+        <!-- ✅ 모바일 전용 단일 버튼 -->
+        <button class="btn theme__btn mobile-toggle" id="mobile-theme-toggle" title="테마 전환">🌗</button>
+      </div>
+
+      {% if request.user.is_authenticated %}
+      <a class="btn" href="{% url 'listing_create' %}">상품등록</a>
+      <a class="btn" href="{% url 'profile' %}">내 계정</a>
+      <a class="btn" href="{% url 'logout' %}">로그아웃</a>
+      {% else %}
+      <a class="btn" href="{% url 'login' %}">로그인</a>
+      <a class="btn btn--primary" href="{% url 'signup' %}">회원가입</a>
+      {% endif %}
+    </div>
+  </header>
+  
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="glass glass--footer">© Capstone Design Project by 칠색조</footer>
+  {% block scripts %}{% endblock %}
+</body>
+
+</html>

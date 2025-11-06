@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}상품 등록{% endblock %}
+
+{% block content %}
+<section class="glass form-card">
+  <header class="form-card__header">
+    <h2>상품 등록</h2>
+    <p>모든 필드를 채운 뒤 상품 이미지를 업로드해 주세요.</p>
+  </header>
+
+  {% if form.errors %}
+  <div class="form-card__errors">
+    {{ form.errors }}
+  </div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" action="{% url 'listing_create' %}" class="form-card__form">
+    {% csrf_token %}
+
+    <div id="preview-container" class="form-card__preview"></div>
+
+    <div class="form-field">
+      <label for="{{ form.title.id_for_label }}">상품 이름</label>
+      {{ form.title }}
+    </div>
+
+    <div class="form-field">
+      <label for="{{ form.price.id_for_label }}">가격</label>
+      {{ form.price }}
+    </div>
+
+    <div class="form-field">
+      <label for="{{ form.description.id_for_label }}">설명</label>
+      {{ form.description }}
+    </div>
+
+    <div class="form-field">
+      <label for="{{ form.status.id_for_label }}">상태</label>
+      {{ form.status }}
+    </div>
+
+    <div class="form-field">
+      <label for="{{ form.image.id_for_label }}">이미지</label>
+      {{ form.image }}
+    </div>
+
+    <div class="form-card__actions">
+      <button type="submit" class="btn btn--primary">등록하기</button>
+      <a href="{% url 'listing_list' %}" class="btn">취소</a>
+    </div>
+  </form>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+  {{ block.super }}
+  <script src="{% static 'js/listing_create.js' %}" defer></script>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}{{ object.title }} - 상세보기
+
+{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="glass" style="padding:24px;max-width:900px;margin:0 auto;">
+    <h2 style="margin:0 0 6px 0;">{{ object.title }}</h2>
+    {% if object.image %}
+    <img src="{{ object.image.url }}" alt=""
+      style="width:100%;border-radius:16px;object-fit:cover;max-height:520px;margin:12px 0 0;" />
+    {% endif %}
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+      <p style="font-size:18px;font-weight:600;margin:0;">{{ object.price|intcomma }} 원</p>
+      <span style="color:gray;">판매자: {{ object.seller.username }}</span>
+    </div>
+
+    <div style="margin-top:16px;">{{ object.description|linebreaks }}</div>
+  </div>
+</div>
+
+{% if request.user != object.seller %}
+<a href="{% url 'chat:chat_room_create' object.id %}" class="btn">💬 판매자와 대화하기</a>
+{% endif %}
+
+{% endblock %}
