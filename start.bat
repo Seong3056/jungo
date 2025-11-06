@@ -19,9 +19,9 @@ echo ✅ Python 감지됨
 
 :: ===== 2️⃣ .env 불러오기 =====
 setlocal enabledelayedexpansion
-if exist ".env" (
+if exist ".env.windows" (
     echo 📄 .env 파일 감지됨 → 환경변수 로드 중...
-    for /f "usebackq tokens=1,2 delims==" %%A in (".env") do (
+    for /f "usebackq tokens=1,2 delims==" %%A in (".env.windows") do (
         set "%%A=%%B"
     )
 ) else (
@@ -73,19 +73,18 @@ python manage.py makemigrations
 python manage.py migrate
 python manage.py collectstatic --noinput
 
-:: ===== 6️⃣ Daphne 서버 재시작 =====
+:: ===== 6️⃣ Daphne 재시작 =====
 echo 🚦 Daphne 서버 상태 확인 중...
 
-:: WMIC으로 daphne 프로세스 탐색 및 종료
-for /f "tokens=2 delims=," %%p in ('wmic process where "CommandLine like '%%daphne%%'" get ProcessId /format:csv 2^>nul') do (
-    echo ⚠️ 기존 Daphne 프로세스 종료 중 (PID %%p)
-    taskkill /PID %%p /F >nul 2>&1
+:: 8000포트를 점유 중인 프로세스 확인 후 자동 종료
+for /f "tokens=5" %%P in ('netstat -ano ^| find ":8000" ^| find "LISTENING"') do (
+    echo ⚠️ 포트 8000 점유 중인 프로세스 종료 중 (PID %%P)
+    taskkill /PID %%P /F >nul 2>&1
 )
 
-:: 혹시 남은 python.exe 중 daphne 관련 프로세스도 종료
-for /f "tokens=1" %%p in ('tasklist /fi "imagename eq python.exe" /v ^| find /i "daphne"') do (
-    echo ⚠️ 잔여 Daphne 프로세스 종료 중 (PID %%p)
-    taskkill /pid %%p /f >nul 2>&1
+:: Daphne 프로세스 이름으로도 추가 확인
+for /f "tokens=2 delims=," %%p in ('wmic process where "CommandLine like '%%daphne%%'" get ProcessId /format:csv 2^>nul') do (
+    taskkill /PID %%p /F >nul 2>&1
 )
 
 echo 🚀 새 Daphne 서버 실행 중...
@@ -106,15 +105,21 @@ if exist "%PI_SCRIPT%" (
     echo ⚠️ %PI_SCRIPT% 파일을 찾을 수 없습니다.
 )
 
-:: ===== 8️⃣ ngrok 실행 =====
+:: ===== ngrok 실행 =====
 where ngrok >nul 2>&1
 if errorlevel 1 (
     echo ⚠️ ngrok이 설치되어 있지 않습니다.
     echo 👉 https://ngrok.com/download 에서 설치 후 PATH에 추가하세요.
 ) else (
-    echo 🌐 ngrok 터널링 시작 중...
+    echo 🌐 ngrok 상태 점검 중...
+    for /f "tokens=2 delims=," %%p in ('wmic process where "CommandLine like '%%ngrok http 8000%%'" get ProcessId /format:csv 2^>nul') do (
+        echo ⚙️ 기존 ngrok 프로세스 종료 중 (PID %%p)
+        taskkill /pid %%p /f >nul 2>&1
+    )
+    echo 🚀 ngrok 새 터널 실행 중...
     start "" cmd /k "ngrok http 8000 --request-header-add='ngrok-skip-browser-warning:true'"
 )
+
 
 echo ==============================================
 echo ✅ Jungo 서버 + Daphne + RaspberryPi 실행 완료!

@@ -2,14 +2,14 @@
 # 🚀 Jungo All-in-One Server Starter (Django + RaspberryPi + Arduino + Local ngrok Token)
 # ========================================================================
 
-# 0️⃣ 실행 권한 자동 부여
+# 0️⃣ 실행 권한 자동 부여 (자기 자신)
 if [ ! -x "$0" ]; then
     echo "🔧 실행 권한이 없어 자동으로 부여 중..."
     chmod +x "$0"
     echo "✅ 권한 부여 완료"
 fi
 
-# 💡 추가: 실행 폴더 기준으로 경로 고정
+# 💡 현재 실행 경로를 스크립트 파일 위치로 고정
 cd "$(dirname "$0")"
 
 echo "=============================================="
@@ -70,21 +70,18 @@ python manage.py makemigrations
 python manage.py migrate
 python manage.py collectstatic --noinput
 
-# ===== 7️⃣ Daphne 서버 자동 재시작 =====
-echo "🚦 Daphne 서버 상태 확인 중..."
-EXIST_PID=$(pgrep -f "daphne -b 0.0.0.0 -p 8000")
+# ===== 7️⃣ Daphne 재시작 =====
+EXIST_PID=$(lsof -t -i:8000)
 if [ -n "$EXIST_PID" ]; then
-    echo "⚠️ 기존 Daphne 서버 종료 중 (PID: $EXIST_PID)"
+    echo "⚠️ 포트 8000 점유 중인 프로세스 종료 중 (PID: $EXIST_PID)"
     kill -9 "$EXIST_PID"
     sleep 0.5
 fi
-
-echo "🚀 새 Daphne 서버 실행 중..."
 nohup python -m daphne -b 0.0.0.0 -p 8000 core.asgi:application > server.log 2>&1 &
-SERVER_PID=$!
-echo "✅ Daphne PID: $SERVER_PID"
+echo "✅ Daphne 실행 완료"
 
-# ===== 8️⃣ RaspberryPi + Arduino 통신 자동 재시작 =====
+
+# ===== 8️⃣ RaspberryPi + Arduino 통신 =====
 PI_SCRIPT="embedded/raspberry_pi.py"
 EXIST_PI=$(pgrep -f "raspberry_pi.py")
 if [ -n "$EXIST_PI" ]; then
@@ -105,25 +102,22 @@ else
     echo "⚠️ $PI_SCRIPT 파일을 찾을 수 없습니다."
 fi
 
-# ===== 9️⃣ ngrok 자동 실행 (로컬 설정 사용) =====
+# ===== 9️⃣ ngrok 실행 =====
 if command -v ngrok &> /dev/null; then
     EXIST_NGROK=$(pgrep -f "ngrok http 8000")
     if [ -n "$EXIST_NGROK" ]; then
+        echo "⚙️ 기존 ngrok 프로세스 종료 중 (PID: $EXIST_NGROK)"
         kill -9 "$EXIST_NGROK"
-        sleep 0.5
+        sleep 1
     fi
-
-    if [ -f "$HOME/.config/ngrok/ngrok.yml" ]; then
-        echo "🌐 ngrok 설정 감지됨 → 로컬 토큰으로 실행 중..."
-    else
-        echo "⚠️ ngrok 토큰이 로컬 설정에 없습니다. 무료 임시 세션으로 실행합니다."
-    fi
-
+    echo "🚀 ngrok 터널 새로 시작 중..."
     nohup ngrok http 8000 --request-header-add='ngrok-skip-browser-warning:true' > ngrok.log 2>&1 &
+    sleep 2
     echo "✅ ngrok 실행됨 (로그: ngrok.log)"
 else
-    echo "ℹ️ ngrok이 설치되어 있지 않습니다. 설치 명령: sudo apt install ngrok -y"
+    echo "⚠️ ngrok이 설치되어 있지 않습니다. 설치 명령: sudo apt install ngrok -y"
 fi
+
 
 echo "=============================================="
 echo "✅ Jungo 서버 + RaspberryPi 자동실행 완료!"
