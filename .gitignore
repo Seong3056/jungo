@@ -1,0 +1,172 @@
+# ==========================================
+# 🐍 Python / Django / Jungo Project Ignore
+# ==========================================
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# ==========================
+# Virtual Environment
+# ==========================
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+Scripts/
+Lib/
+
+# ==========================
+# Django Stuff
+# ==========================
+*.log
+*.pot
+*.pyc
+*.py~ 
+media/
+staticfiles/
+local_settings.py
+
+# ==========================
+# Django Channels / Daphne
+# ==========================
+*.pid
+*.sock
+*.db-shm
+*.db-wal
+
+# ==========================
+# ngrok / Tunnel
+# ==========================
+*.ngrok*
+.ngrok2/
+.ngrok/
+*.log
+
+# ==========================
+# OS / Editor Config
+# ==========================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# ==========================
+# VSCode / JetBrains IDE
+# ==========================
+.vscode/
+.idea/
+*.code-workspace
+
+# ==========================
+# Node / npm (if used for frontend)
+# ==========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ==========================
+# Build / Packaging
+# ==========================
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+*.manifest
+*.spec
+
+# ==========================
+# Raspberry Pi Specific
+# ==========================
+__MACOSX/
+*.swp
+*.tmp
+*.bak
+*.pid
+*.lock
+*.deb
+*.tar
+*.log
+*.zip
+*.tar.gz
+
+# ==========================
+# Custom Project Files
+# ==========================
+# 환경설정, 비밀키, API 키 등
+.env
+.env.*
+*.pem
+*.key
+*.crt
+*.json
+config/
+secrets.json
+secret_key.txt
+
+# ==========================
+# Media / Upload / Cache
+# ==========================
+uploads/
+cache/
+tmp/
+temp/
+
+# ==========================
+# pyInstaller / Packaging
+# ==========================
+*.spec
+output/
+dist/
+build/
+*.exe
+*.bat
+*.sh
+
+# ==========================
+# Testing
+# ==========================
+.coverage
+htmlcov/
+.tox/
+.nox/
+.pytest_cache/
+test-results/
+junit-*.xml
+
+# ==========================
+# Logs / Reports
+# ==========================
+*.log
+*.out
+*.err
+logs/
+error.log
+debug.log
+server.log
+
+# ==========================
+# Misc
+# ==========================
+*.bak
+*.old
+*.orig
+*.swp
+*.swo
+*.tmp
+*~
