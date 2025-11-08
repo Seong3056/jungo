@@ -2,22 +2,40 @@
 chcp 65001 >nul
 cd /d "%~dp0"   :: 💡 start.bat이 있는 폴더를 기준으로 경로 고정
 
-title 🚀 Jungo All-in-One Server Starter (v2.1)
+title 🚀 Jungo All-in-One Server Starter (v2.2 / Python 3.11)
 echo ==============================================
-echo  Jungo 서버 실행 (.env + 상대경로 + Daphne 재시작 지원)
+echo  Jungo 서버 실행 (.env + Python 3.11 고정 + Daphne 재시작 지원)
 echo ==============================================
 
-:: ===== 1️⃣ Python 확인 =====
-python --version >nul 2>&1
+:: ===== 0️⃣ Python 3.11 확인 =====
+where python >nul 2>&1
 if errorlevel 1 (
     echo ⚠️ Python이 설치되어 있지 않습니다.
-    echo 👉 https://www.python.org/downloads 에서 설치 후 "Add Python to PATH" 체크!
+    echo 👉 https://www.python.org/downloads/release/python-3110/ 에서 설치 후 "Add Python to PATH" 체크!
     pause
     exit /b
 )
-echo ✅ Python 감지됨
 
-:: ===== 2️⃣ .env 불러오기 =====
+for /f "tokens=2 delims= " %%a in ('python --version 2^>^&1') do set PY_VER=%%a
+echo 현재 Python 버전: %PY_VER%
+
+echo %PY_VER% | find "3.11" >nul
+if errorlevel 1 (
+    echo ⚠️ Python 3.11이 아닙니다. python3.11 명령어를 탐색합니다...
+    where python3.11 >nul 2>&1
+    if errorlevel 1 (
+        echo ❌ Python 3.11이 설치되어 있지 않거나 PATH에 등록되지 않았습니다.
+        echo 👉 https://www.python.org/downloads/release/python-3110/ 에서 Python 3.11 설치 후 재시도하세요.
+        pause
+        exit /b
+    )
+    set PY_CMD=python3.11
+) else (
+    echo ✅ Python 3.11이 감지되었습니다.
+    set PY_CMD=python
+)
+
+:: ===== 1️⃣ .env 불러오기 =====
 setlocal enabledelayedexpansion
 if exist ".env.windows" (
     echo 📄 .env 파일 감지됨 → 환경변수 로드 중...
@@ -37,60 +55,66 @@ echo   DB_PATH = %DB_PATH%
 echo   UNO_PORT = %UNO_PORT%
 echo   UNO_BAUD = %UNO_BAUD%
 
-:: ===== 3️⃣ 가상환경 =====
+:: ===== 2️⃣ 가상환경 =====
 if not exist ".venv" (
-    echo 🌱 가상환경 생성 중...
-    python -m venv .venv
+    echo 🌱 Python 3.11 기반 가상환경 생성 중...
+    %PY_CMD% -m venv .venv
+    if errorlevel 1 (
+        echo ❌ 가상환경 생성 실패. Python 3.11 경로를 확인하세요.
+        pause
+        exit /b
+    )
 )
 call .venv\Scripts\activate
 if errorlevel 1 (
-    echo ❌ 가상환경 활성화 실패. .venv 폴더를 삭제 후 다시 시도하세요.
+    echo ❌ 가상환경 활성화 실패. .venv 폴더 삭제 후 다시 시도하세요.
     pause
     exit /b
 )
 echo ✅ 가상환경 활성화 완료
 
-:: ===== 4️⃣ 패키지 설치 =====
+:: ===== 3️⃣ 패키지 설치 =====
 echo 📦 pip 최신화 중...
-python -m pip install --upgrade pip >nul
+%PY_CMD% -m pip install --upgrade pip >nul
 
 if exist "requirements.txt" (
     echo 📦 requirements.txt 기반 의존성 설치 중...
     pip install -r requirements.txt
 ) else (
+    echo ⚠️ requirements.txt 없음 → 기본 패키지 수동 설치
     pip install "Django==5.2.8" "channels==4.1.0" "daphne==4.1.2" "requests==2.32.3" "pyserial==3.5" "python-dotenv==1.0.1"
 )
 echo ✅ 패키지 설치 완료
 
-:: ===== 5️⃣ DB 마이그레이션 =====
+:: ===== 4️⃣ DB 마이그레이션 =====
 if not exist "manage.py" (
     echo ❌ manage.py 파일이 없습니다. 현재 폴더를 확인하세요.
     pause
     exit /b
 )
 echo 🧱 DB 마이그레이션 실행...
-python manage.py makemigrations
-python manage.py migrate
-python manage.py collectstatic --noinput
+%PY_CMD% manage.py makemigrations
+%PY_CMD% manage.py migrate
+%PY_CMD% manage.py collectstatic --noinput
 
-:: ===== 6️⃣ Daphne 재시작 =====
+:: ===== 5️⃣ Daphne 재시작 =====
 echo 🚦 Daphne 서버 상태 확인 중...
 
-:: 8000포트를 점유 중인 프로세스 확인 후 자동 종료
+:: 8000포트 점유 중인 프로세스 종료
 for /f "tokens=5" %%P in ('netstat -ano ^| find ":8000" ^| find "LISTENING"') do (
     echo ⚠️ 포트 8000 점유 중인 프로세스 종료 중 (PID %%P)
     taskkill /PID %%P /F >nul 2>&1
 )
 
-:: Daphne 프로세스 이름으로도 추가 확인
+:: Daphne 프로세스 직접 종료
 for /f "tokens=2 delims=," %%p in ('wmic process where "CommandLine like '%%daphne%%'" get ProcessId /format:csv 2^>nul') do (
     taskkill /PID %%p /F >nul 2>&1
 )
 
 echo 🚀 새 Daphne 서버 실행 중...
-start "" cmd /k "python -m daphne -b 0.0.0.0 -p 8000 core.asgi:application"
+start "" cmd /k "%PY_CMD% -m daphne -b 0.0.0.0 -p 8000 core.asgi:application"
 
-:: ===== 7️⃣ RaspberryPi + Arduino 통신 =====
+:: ===== 6️⃣ RaspberryPi + Arduino 통신 =====
 set "PI_SCRIPT=embedded\raspberry_pi.py"
 echo 🤖 RaspberryPi 통신 프로세스 확인 중...
 for /f "tokens=1" %%p in ('tasklist /fi "imagename eq python.exe" /v ^| find "raspberry_pi.py"') do (
@@ -100,12 +124,12 @@ for /f "tokens=1" %%p in ('tasklist /fi "imagename eq python.exe" /v ^| find "ra
 
 if exist "%PI_SCRIPT%" (
     echo 🤖 raspberry_pi.py 실행 중...
-    start "" cmd /k python "%PI_SCRIPT%" --db-path "%DB_PATH%" --uno-port "%UNO_PORT%" --uno-baudrate "%UNO_BAUD%"
+    start "" cmd /k "%PY_CMD% "%PI_SCRIPT%" --db-path "%DB_PATH%" --uno-port "%UNO_PORT%" --uno-baudrate "%UNO_BAUD%"
 ) else (
     echo ⚠️ %PI_SCRIPT% 파일을 찾을 수 없습니다.
 )
 
-:: ===== ngrok 실행 =====
+:: ===== 7️⃣ ngrok 실행 =====
 where ngrok >nul 2>&1
 if errorlevel 1 (
     echo ⚠️ ngrok이 설치되어 있지 않습니다.
@@ -119,7 +143,6 @@ if errorlevel 1 (
     echo 🚀 ngrok 새 터널 실행 중...
     start "" cmd /k "ngrok http 8000 --request-header-add='ngrok-skip-browser-warning:true'"
 )
-
 
 echo ==============================================
 echo ✅ Jungo 서버 + Daphne + RaspberryPi 실행 완료!
