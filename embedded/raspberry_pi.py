@@ -1,39 +1,40 @@
 import os
+import sys
 import serial
-import django
 import datetime
 from dotenv import load_dotenv
 
-# ===== .env 불러오기 =====
-load_dotenv(".env.linux")
+# ===== 경로 보정 =====
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.append(PROJECT_ROOT)
 
-PORT = os.getenv("UNO_PORT")  # 예: /dev/ttyACM0
-BAUD = int(os.getenv("UNO_BAUD", 9600))  # 기본값 9600
-
-# ===== Django 환경 초기화 =====
+# ===== Django 설정 (미래 DB 사용 대비) =====
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
-django.setup()
 
-from orders.models import Order
+# ===== .env 로드 =====
+load_dotenv(os.path.join(PROJECT_ROOT, ".env.linux"))
 
-
-# ===== 로그 함수 =====
+# ===== logging 함수 =====
 def write_log(message):
-    """access_log.txt에 시간별 로그 남기기"""
     now = datetime.datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
-    with open("access_log.txt", "a", encoding="utf-8") as f:
+    with open(os.path.join(PROJECT_ROOT, "access_log.txt"), "a", encoding="utf-8") as f:
         f.write(f"{now} {message}\n")
 
-
-# ===== 메인 로직 =====
+# ===== 메인 =====
 def main():
+    PORT = os.getenv("UNO_PORT", "/dev/ttyACM0")
+    BAUD = int(os.getenv("UNO_BAUD", 9600))
+    SECRET_CODE = "1234"
+
     try:
         ser = serial.Serial(PORT, BAUD, timeout=1)
-        print(f"✅ Serial 연결됨: {PORT} ({BAUD}bps)")
-        write_log(f"[INFO] 시리얼 연결 성공 ({PORT})")
+        print(f"✅ Serial 연결됨: {PORT}")
+        write_log(f"[INFO] Serial 연결됨: {PORT}")
     except Exception as e:
-        print(f"❌ 시리얼 연결 실패: {e}")
-        write_log(f"[ERROR] 시리얼 연결 실패 - {e}")
+        print(f"❌ Serial 연결 실패: {e}")
+        write_log(f"[ERROR] Serial 연결 실패: {e}")
         return
 
     while True:
@@ -42,32 +43,17 @@ def main():
             if not code:
                 continue
 
-            print(f"🔹 입력된 코드: {code}")
+            print(f"🔹 입력 코드: {code}")
             write_log(f"[입력] 코드 수신: {code}")
 
-            # ===== DB에서 최신 주문 코드 가져오기 =====
-            try:
-                latest_order = Order.objects.last()
-                if not latest_order:
-                    print("⚠️ DB에 주문 데이터 없음")
-                    write_log(f"[WARN] DB 주문 없음 (입력: {code})")
-                    continue
-
-                db_code = str(latest_order.confirmation_code)
-            except Exception as e:
-                print(f"⚠️ DB 접근 실패: {e}")
-                write_log(f"[ERROR] DB 접근 실패 - {e}")
-                continue
-
-            # ===== 코드 비교 =====
-            if code == db_code:
-                print("✅ 코드 일치 — 문 열림")
+            if code == SECRET_CODE:
+                print("✅ 일치 - 문 열기 신호 전송")
                 ser.write(b"MATCH\n")
-                write_log(f"[OK] 코드 일치 (입력: {code}, DB: {db_code})")
+                write_log("[OK] 코드 일치")
             else:
-                print("❌ 코드 불일치 — 접근 거부")
+                print("❌ 불일치 - 거부")
                 ser.write(b"MISMATCH\n")
-                write_log(f"[FAIL] 코드 불일치 (입력: {code}, DB: {db_code})")
+                write_log(f"[FAIL] 불일치 입력: {code}")
 
 
 if __name__ == "__main__":

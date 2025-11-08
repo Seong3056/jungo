@@ -98,3 +98,4 @@ backups/
 !requirements.txt
 !start.sh
 !start.bat
+access_log.txt
