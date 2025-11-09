@@ -1,6 +1,6 @@
 #!/bin/bash
-# 🚀 Jungo All-in-One Server Controller (start / stop / restart)
-# ===============================================================
+# 🚀 Jungo All-in-One Server Controller (start / stop / restart) - Python 3.13.5 전용
+# ===============================================================================
 
 # 💡 실행 경로 고정
 cd "$(dirname "$0")"
@@ -32,29 +32,32 @@ stop_services() {
 
 start_services() {
     echo "=============================================="
-    echo "🚀 Jungo 서버 통합 실행 시작"
+    echo "🚀 Jungo 서버 통합 실행 시작 (Python 3.13.5)"
     echo "=============================================="
 
-    # ===== 1️⃣ Python 설치 확인 =====
-    if ! command -v python3 &> /dev/null; then
-        echo "⚠️ Python3이 설치되어 있지 않습니다."
-        echo "👉 설치 명령: sudo apt install python3 python3-venv python3-pip -y"
+    # ===== 1️⃣ Python 3.13 확인 =====
+    if command -v python3.13 &>/dev/null; then
+        PYTHON_CMD="python3.13"
+    else
+        echo "❌ Python 3.13이 설치되어 있지 않습니다."
+        echo "👉 설치 명령:"
+        echo "   sudo apt update && sudo apt install python3.13 python3.13-venv python3.13-pip -y"
         exit 1
     fi
-    PYTHON_CMD="python3"
-    echo "✅ Python3 감지됨 ($($PYTHON_CMD --version))"
+
+    echo "✅ Python 3.13 감지됨 ($($PYTHON_CMD --version))"
 
     # ===== 2️⃣ 가상환경 생성 및 활성화 =====
     if [ ! -d ".venv" ]; then
-        echo "🌱 가상환경 생성 중..."
+        echo "🌱 Python 3.13 기반 가상환경 생성 중..."
         $PYTHON_CMD -m venv .venv || { echo "❌ 가상환경 생성 실패."; exit 1; }
     fi
     source .venv/bin/activate
     echo "✅ 가상환경 활성화 완료"
 
-    # pip 복구 (혹시 누락된 경우)
-    python -m ensurepip --upgrade >/dev/null 2>&1
-    python -m pip install --upgrade pip setuptools wheel >/dev/null 2>&1
+    # pip 복구 및 최신화
+    $PYTHON_CMD -m ensurepip --upgrade >/dev/null 2>&1
+    $PYTHON_CMD -m pip install --upgrade pip setuptools wheel >/dev/null 2>&1
 
     # ===== 3️⃣ .env.linux 불러오기 =====
     if [ -f ".env.linux" ]; then
@@ -80,29 +83,34 @@ start_services() {
     if [ -f "requirements.txt" ]; then
         pip install -r requirements.txt
     else
-        pip install "Django==5.2.8" "channels==4.1.0" "daphne==4.1.2" \
-                    "requests==2.32.3" "pyserial==3.5" "python-dotenv==1.0.1"
+        pip install \
+            "Django==5.2.8" \
+            "channels==4.1.0" \
+            "daphne==4.1.3" \
+            "requests==2.32.3" \
+            "pyserial==3.5" \
+            "python-dotenv==1.0.1"
     fi
     echo "✅ 패키지 설치 완료"
 
     # ===== 6️⃣ DB 마이그레이션 =====
     echo "🧱 데이터베이스 마이그레이션 실행..."
-    python manage.py makemigrations
-    python manage.py migrate
-    python manage.py collectstatic --noinput
+    $PYTHON_CMD manage.py makemigrations
+    $PYTHON_CMD manage.py migrate
+    $PYTHON_CMD manage.py collectstatic --noinput
 
     # ===== 7️⃣ Daphne 실행 =====
     EXIST_PID=$(lsof -t -i:$PORT)
     [ -n "$EXIST_PID" ] && kill -9 "$EXIST_PID"
-    nohup python -m daphne -b 0.0.0.0 -p $PORT core.asgi:application > server.log 2>&1 &
-    echo "✅ Daphne 실행 완료"
+    nohup $PYTHON_CMD -m daphne -b 0.0.0.0 -p $PORT core.asgi:application > server.log 2>&1 &
+    echo "✅ Daphne 실행 완료 (로그: server.log)"
 
     # ===== 8️⃣ RaspberryPi + Arduino 통신 =====
     EXIST_PI=$(pgrep -f "raspberry_pi.py")
     [ -n "$EXIST_PI" ] && kill -9 "$EXIST_PI"
     if [ -f "$PI_SCRIPT" ]; then
         echo "🤖 raspberry_pi.py 실행 중..."
-        nohup python "$PI_SCRIPT" \
+        nohup $PYTHON_CMD "$PI_SCRIPT" \
             --db-path "$DB_PATH" \
             --uno-port "$UNO_PORT" \
             --uno-baudrate "$UNO_BAUD" \

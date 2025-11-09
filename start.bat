@@ -2,16 +2,16 @@
 chcp 65001 >nul
 cd /d "%~dp0"   :: 💡 start.bat이 있는 폴더를 기준으로 경로 고정
 
-title 🚀 Jungo All-in-One Server Starter (v2.2 / Python 3.11)
+title 🚀 Jungo All-in-One Server Starter (v2.3 / Python 3.13)
 echo ==============================================
-echo  Jungo 서버 실행 (.env + Python 3.11 고정 + Daphne 재시작 지원)
+echo  Jungo 서버 실행 (.env + Python 3.13 고정 + Daphne 재시작 지원)
 echo ==============================================
 
-:: ===== 0️⃣ Python 3.11 확인 =====
+:: ===== 0️⃣ Python 3.13 확인 =====
 where python >nul 2>&1
 if errorlevel 1 (
     echo ⚠️ Python이 설치되어 있지 않습니다.
-    echo 👉 https://www.python.org/downloads/release/python-3110/ 에서 설치 후 "Add Python to PATH" 체크!
+    echo 👉 https://www.python.org/downloads/release/python-3135/ 에서 설치 후 "Add Python to PATH" 체크!
     pause
     exit /b
 )
@@ -19,19 +19,19 @@ if errorlevel 1 (
 for /f "tokens=2 delims= " %%a in ('python --version 2^>^&1') do set PY_VER=%%a
 echo 현재 Python 버전: %PY_VER%
 
-echo %PY_VER% | find "3.11" >nul
+echo %PY_VER% | find "3.13" >nul
 if errorlevel 1 (
-    echo ⚠️ Python 3.11이 아닙니다. python3.11 명령어를 탐색합니다...
-    where python3.11 >nul 2>&1
+    echo ⚠️ Python 3.13이 아닙니다. python3.13 명령어를 탐색합니다...
+    where python3.13 >nul 2>&1
     if errorlevel 1 (
-        echo ❌ Python 3.11이 설치되어 있지 않거나 PATH에 등록되지 않았습니다.
-        echo 👉 https://www.python.org/downloads/release/python-3110/ 에서 Python 3.11 설치 후 재시도하세요.
+        echo ❌ Python 3.13이 설치되어 있지 않거나 PATH에 등록되지 않았습니다.
+        echo 👉 https://www.python.org/downloads/release/python-3135/ 에서 Python 3.13 설치 후 재시도하세요.
         pause
         exit /b
     )
-    set PY_CMD=python3.11
+    set PY_CMD=python3.13
 ) else (
-    echo ✅ Python 3.11이 감지되었습니다.
+    echo ✅ Python 3.13이 감지되었습니다.
     set PY_CMD=python
 )
 
@@ -57,10 +57,10 @@ echo   UNO_BAUD = %UNO_BAUD%
 
 :: ===== 2️⃣ 가상환경 =====
 if not exist ".venv" (
-    echo 🌱 Python 3.11 기반 가상환경 생성 중...
+    echo 🌱 Python 3.13 기반 가상환경 생성 중...
     %PY_CMD% -m venv .venv
     if errorlevel 1 (
-        echo ❌ 가상환경 생성 실패. Python 3.11 경로를 확인하세요.
+        echo ❌ 가상환경 생성 실패. Python 3.13 경로를 확인하세요.
         pause
         exit /b
     )
@@ -81,8 +81,14 @@ if exist "requirements.txt" (
     echo 📦 requirements.txt 기반 의존성 설치 중...
     pip install -r requirements.txt
 ) else (
-    echo ⚠️ requirements.txt 없음 → 기본 패키지 수동 설치
-    pip install "Django==5.2.8" "channels==4.1.0" "daphne==4.1.2" "requests==2.32.3" "pyserial==3.5" "python-dotenv==1.0.1"
+    echo ⚠️ requirements.txt 없음 → Python 3.13 호환 기본 패키지 설치
+    pip install ^
+        "Django==5.2.8" ^
+        "channels==4.1.0" ^
+        "daphne==4.1.3" ^
+        "requests==2.32.3" ^
+        "pyserial==3.5" ^
+        "python-dotenv==1.0.1"
 )
 echo ✅ 패키지 설치 완료
 
@@ -100,13 +106,11 @@ echo 🧱 DB 마이그레이션 실행...
 :: ===== 5️⃣ Daphne 재시작 =====
 echo 🚦 Daphne 서버 상태 확인 중...
 
-:: 8000포트 점유 중인 프로세스 종료
 for /f "tokens=5" %%P in ('netstat -ano ^| find ":8000" ^| find "LISTENING"') do (
     echo ⚠️ 포트 8000 점유 중인 프로세스 종료 중 (PID %%P)
     taskkill /PID %%P /F >nul 2>&1
 )
 
-:: Daphne 프로세스 직접 종료
 for /f "tokens=2 delims=," %%p in ('wmic process where "CommandLine like '%%daphne%%'" get ProcessId /format:csv 2^>nul') do (
     taskkill /PID %%p /F >nul 2>&1
 )
