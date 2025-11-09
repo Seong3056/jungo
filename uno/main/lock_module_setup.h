@@ -24,4 +24,9 @@ extern Servo motor;
 #define MOTOR_PIN 10
 void motorInit();
 
+// ===== Magnet Sensor (SEN030600) =====
+#define MAGNET_PIN 13
+void magnetInit();
+bool isMagnetDetected();
+
 #endif

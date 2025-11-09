@@ -25,7 +25,6 @@ Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 void keypadInit() {
   keypad.setDebounceTime(20);
   keypad.setHoldTime(50);
-  // Serial.println("Keypad initialized");
 }
 
 // ===== Servo =====
@@ -33,5 +32,15 @@ Servo motor;
 void motorInit() {
   motor.attach(MOTOR_PIN);
   delay(300);
-  motor.write(90);
+  motor.write(90); // 잠금 상태
+}
+
+// ===== Magnet Sensor (SEN030600) =====
+void magnetInit() {
+  pinMode(MAGNET_PIN, INPUT);
+}
+
+bool isMagnetDetected() {
+  // SEN030600: 자석이 가까우면 LOW, 떨어지면 HIGH
+  return (digitalRead(MAGNET_PIN) == LOW);
 }
