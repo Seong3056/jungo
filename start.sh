@@ -67,13 +67,14 @@ start_services() {
     source .venv/bin/activate
     echo "✅ 가상환경 활성화 완료"
 
-    # ===== 3️⃣ .env 불러오기 =====
-    if [ -f ".env" ]; then
-        echo "📄 .env 파일 감지됨 → 환경 변수 로드 중..."
-        export $(grep -v '^#' .env | xargs)
-    else
-        echo "⚠️ .env 파일이 없습니다. 기본값으로 실행합니다."
-    fi
+    # ===== 3️⃣ .env.linux 불러오기 =====
+if [ -f ".env.linux" ]; then
+    echo "📄 .env.linux 파일 감지됨 → 환경 변수 로드 중..."
+    export $(grep -v '^#' .env.linux | xargs)
+else
+    echo "⚠️ .env.linux 파일이 없습니다. 기본값으로 실행합니다."
+fi
+
 
     # ===== 4️⃣ 기본값 설정 =====
     SCRIPT_DIR="$(dirname "$(realpath "$0")")"
