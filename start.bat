@@ -21,15 +21,15 @@ echo 현재 Python 버전: %PY_VER%
 
 echo %PY_VER% | find "3.13" >nul
 if errorlevel 1 (
-    echo ⚠️ Python 3.13이 아닙니다. python3.13 명령어를 탐색합니다...
-    where python3.13 >nul 2>&1
+    echo ⚠️ Python 3.13이 아닙니다. py -3.13 명령어를 시도합니다...
+    py -3.13 --version >nul 2>&1
     if errorlevel 1 (
         echo ❌ Python 3.13이 설치되어 있지 않거나 PATH에 등록되지 않았습니다.
         echo 👉 https://www.python.org/downloads/release/python-3135/ 에서 Python 3.13 설치 후 재시도하세요.
         pause
         exit /b
     )
-    set PY_CMD=python3.13
+    set PY_CMD=py -3.13
 ) else (
     echo ✅ Python 3.13이 감지되었습니다.
     set PY_CMD=python
@@ -85,7 +85,7 @@ if exist "requirements.txt" (
     pip install ^
         "Django==5.2.8" ^
         "channels==4.1.0" ^
-        "daphne==4.1.3" ^
+        "daphne==4.1.2" ^
         "requests==2.32.3" ^
         "pyserial==3.5" ^
         "python-dotenv==1.0.1"
