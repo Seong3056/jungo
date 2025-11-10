@@ -29,4 +29,11 @@ void motorInit();
 void magnetInit();
 bool isMagnetDetected();
 
+// ===== Ultrasonic Sensor (HC-SR04) =====
+#define TRIG_PIN A5
+#define ECHO_PIN A4
+void ultrasonicInit();
+float getDistance();
+bool isObjectDetected(float range = 30.0);
+
 #endif

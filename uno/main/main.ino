@@ -12,14 +12,16 @@ bool currentMagnet = false;
 
 unsigned long lastInputTime = 0;
 const unsigned long INPUT_TIMEOUT = 30000; // 30초 입력 제한
+unsigned long lastUltrasonicCheck = 0;
+const unsigned long ULTRASONIC_INTERVAL = 500; // 초음파 주기 0.5초
 
 void setup() {
   Serial.begin(9600);
   lcdInit();
   keypadInit();
   motorInit();
-
-  pinMode(MAGNET_PIN, INPUT);   // ✅ 마그네틱 센서 핀 초기화
+  magnetInit();
+  ultrasonicInit();  // ✅ 초음파 센서 초기화
 
   lcd.clear();
   lcd.print("Enter ID:");
@@ -43,18 +45,37 @@ void loop() {
   // 🔹 마그네틱 센서 상태 읽기
   currentMagnet = digitalRead(MAGNET_PIN);
 
-  // 🔹 센서 상태 변화 시 LCD에 표시
+  // 🔹 문 상태 변화 시 LCD 표시
   if (currentMagnet != lastMagnet) {
     lastMagnet = currentMagnet;
     lcd.clear();
-    if (currentMagnet == LOW) {         // 자석 감지 (문 닫힘)
+    if (currentMagnet == LOW) {
       lcd.print("Magnet Detected");
-    } else {                            // 자석 없음 (문 열림)
+    } else {
       lcd.print("Magnet Removed");
     }
     delay(800);
     lcd.clear();
     lcd.print("Enter ID:");
+  }
+
+  // 🔹 초음파 거리 주기적 측정
+  if (millis() - lastUltrasonicCheck > ULTRASONIC_INTERVAL) {
+    lastUltrasonicCheck = millis();
+
+    float dist = getDistance();
+    if (dist > 0 && dist < 30.0) {
+      Serial.print("DIST:");
+      Serial.println(dist, 1); // ex) DIST:12.3
+      lcd.clear();
+      lcd.print("Object Detected");
+      lcd.setCursor(0, 1);
+      lcd.print(dist);
+      lcd.print(" cm");
+      delay(500);
+      lcd.clear();
+      lcd.print("Enter ID:");
+    }
   }
 
   // 🔹 입력 타임아웃 처리
@@ -96,7 +117,7 @@ void loop() {
           lcd.print("Sending...");
           waitingResponse = true;
 
-          // 🔹 Raspberry Pi로 전송 (형식: CHECK:<id>:<code>)
+          // 🔹 Raspberry Pi로 전송
           String msg = "CHECK:" + enteredId + ":" + enteredCode + "\n";
           Serial.print(msg);
         } else {
@@ -128,11 +149,11 @@ void loop() {
     lcd.clear();
     if (response == "MATCH") {
       lcd.print("Access Granted");
-      //motorUnlock();  // ✅ 모터 동작 (문 열기)
+      // motorUnlock();  // ✅ 문 열기
     } else if (response == "NO_MATCH") {
       lcd.print("Access Denied");
     } else if (response == "NO_LISTING" || response == "NO_SUCH_ID") {
-      lcd.print("No such ID found");
+      lcd.print("No such ID");
     } else {
       lcd.print("Error");
       lcd.setCursor(0, 1);

@@ -44,3 +44,29 @@ bool isMagnetDetected() {
   // SEN030600: 자석이 가까우면 LOW, 떨어지면 HIGH
   return (digitalRead(MAGNET_PIN) == LOW);
 }
+
+// ===== Ultrasonic Sensor (HC-SR04) =====
+void ultrasonicInit() {
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+}
+
+float getDistance() {
+  long duration;
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+
+  duration = pulseIn(ECHO_PIN, HIGH, 30000); // 30ms timeout
+  if (duration == 0) return -1;  // 타임아웃 시 -1 반환
+
+  float distance = (duration * 0.0343) / 2.0; // cm 단위
+  return distance;
+}
+
+bool isObjectDetected(float range) {
+  float d = getDistance();
+  return (d > 0 && d < range);
+}

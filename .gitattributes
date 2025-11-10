@@ -1,21 +1,32 @@
 # ======================================
-# 🔧 Core settings
+# 🔧 기본 텍스트 파일 처리 (EOL 정규화)
 # ======================================
 # 모든 텍스트 파일은 LF(Line Feed)로 통일
 * text=auto eol=lf
 
-# UTF-8 인코딩 강제
-*.py     text working-tree-encoding=UTF-8
-*.html   text working-tree-encoding=UTF-8
-*.css    text working-tree-encoding=UTF-8
-*.js     text working-tree-encoding=UTF-8
-*.json   text working-tree-encoding=UTF-8
-*.md     text working-tree-encoding=UTF-8
-*.sh     text working-tree-encoding=UTF-8
-*.bat    text working-tree-encoding=UTF-8
-*.txt    text working-tree-encoding=UTF-8
-*.yml    text working-tree-encoding=UTF-8
-*.yaml   text working-tree-encoding=UTF-8
+# ======================================
+# ⚙️ OS별 예외 처리
+# ======================================
+# Windows용 배치 파일은 CRLF 유지
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# ======================================
+# 💬 UTF-8 인코딩 강제
+# ======================================
+*.py      text working-tree-encoding=UTF-8
+*.html    text working-tree-encoding=UTF-8
+*.css     text working-tree-encoding=UTF-8
+*.js      text working-tree-encoding=UTF-8
+*.jsx     text working-tree-encoding=UTF-8
+*.tsx     text working-tree-encoding=UTF-8
+*.json    text working-tree-encoding=UTF-8
+*.md      text working-tree-encoding=UTF-8
+*.sh      text working-tree-encoding=UTF-8
+*.txt     text working-tree-encoding=UTF-8
+*.yml     text working-tree-encoding=UTF-8
+*.yaml    text working-tree-encoding=UTF-8
+*.jinja   text working-tree-encoding=UTF-8
 
 # ======================================
 # 🧱 Binary files (줄바꿈 변환 금지)
@@ -25,6 +36,7 @@
 *.jpeg binary
 *.gif binary
 *.ico binary
+*.svg binary
 *.pdf binary
 *.zip binary
 *.tar binary
@@ -40,20 +52,17 @@
 *.mp3 binary
 *.mp4 binary
 *.mov binary
+*.avi binary
+*.ogg binary
+*.webm binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
 
 # ======================================
-# 🧩 Diff / Merge enhancements
+# 🧩 Arduino / Embedded
 # ======================================
-# Django migration 파일은 diff 비교 제외
-*.pyc -diff
-*.pyo -diff
-*.sqlite3 -diff
-*.db -diff
-*.bin -diff
-*.hex -diff
-
-# Windows 배치파일은 CRLF 유지
-*.bat text eol=crlf
-
-# Bash 스크립트는 LF 유지
-*.sh text eol=lf
+*.ino text working-tree-encoding=UTF-8
+*.cpp text working-tree-encoding=UTF-8
+*.h   text working-tree-encoding=UTF-8
