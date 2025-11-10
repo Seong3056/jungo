@@ -36,15 +36,15 @@ void handleSerialResponse() {
   Serial.print("📩 Received: ");
   Serial.println(res);
 
-  if (res == "OK") {                     // 인증 성공 → 문 열기
+  if (res == "MATCH") {                     // 인증 성공 → 문 열기
     if (!doorOpen) {
       doorOpen = true;
       openDoor();
-      safeShowMessage("ACCESS GRANTED", 1000);
+      safeShowMessage("Door Open", 1000);
       showPrompt();
     }
   }
-  else if (res == "NO") {                // 인증 실패 → 표시만
+  else if (res == "NO_MATCH") {                // 인증 실패 → 표시만
     safeShowMessage("ACCESS DENIED", 1000);
     showPrompt();
   }

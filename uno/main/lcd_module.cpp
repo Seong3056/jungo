@@ -15,6 +15,6 @@ void showMessage(const String &msg, int delayTime) {
 
 void showPrompt() {
   lcd.clear();
-  lcd.print("Enter Code:");
+  lcd.print("Enter ID:");
   lcd.setCursor(0, 1);
 }

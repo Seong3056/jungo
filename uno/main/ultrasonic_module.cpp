@@ -1,35 +1,32 @@
 #include "lock_module.h"
 
-unsigned long lastUltraSend = 0;
-
 void ultrasonicInit() {
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
 }
 
-float getDistance() {
+void handleUltrasonic() {
+  static unsigned long lastSend = 0;
+  const unsigned long cooldown = 5000; // 5초 쿨다운
+  unsigned long now = millis();
+
+  long duration;
+  float distance;
+
+  // 초음파 거리 측정
   digitalWrite(TRIG_PIN, LOW);
   delayMicroseconds(2);
   digitalWrite(TRIG_PIN, HIGH);
   delayMicroseconds(10);
   digitalWrite(TRIG_PIN, LOW);
-  long duration = pulseIn(ECHO_PIN, HIGH, 30000);
-  if (duration == 0) return -1;
-  return (duration * 0.0343) / 2.0;
-}
 
-bool isObjectDetected(float range) {
-  float d = getDistance();
-  return (d > 0 && d < range);
-}
+  duration = pulseIn(ECHO_PIN, HIGH, 3000); // 30ms 타임아웃
+  distance = duration * 0.034 / 2.0;         // cm 단위
 
-void handleUltrasonic() {
-  static unsigned long lastSend = 0;
-  unsigned long now = millis();
-
-  if (isObjectDetected(30.0)) {
-    if (now - lastSend > 500) {  // 0.5초 간격으로 전송
-      Serial.println("ULTRA:1"); // ✅ 감지 신호 전송
+  // 감지 조건 (20cm 이내)
+  if (distance > 0 && distance < 20) {
+    if (now - lastSend > cooldown) {
+      Serial.println("ULTRA:1");  // ✅ 감지 신호 전송
       lastSend = now;
     }
   }

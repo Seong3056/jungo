@@ -92,3 +92,4 @@ embedded/dist/
 !requirements.txt
 !start.sh
 !start.bat
+config.yml
