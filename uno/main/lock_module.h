@@ -1,5 +1,5 @@
-#ifndef LOCK_MODULE_SETUP_H
-#define LOCK_MODULE_SETUP_H
+#ifndef LOCK_MODULE_H
+#define LOCK_MODULE_H
 
 #include <Arduino.h>
 #include <Keypad.h>
@@ -9,31 +9,35 @@
 // ===== LCD =====
 extern LiquidCrystal lcd;
 void lcdInit();
+void showMessage(const String &msg, int delayTime = 1000);
+void showPrompt();
 
 // ===== Keypad =====
 #define ROWS 4
 #define COLS 4
-extern char keys[ROWS][COLS];
-extern byte rowPins[ROWS];
-extern byte colPins[COLS];
 extern Keypad keypad;
+extern String inputCode;
+extern const int CODE_LEN;
 void keypadInit();
+void handleKeypad();
 
 // ===== Servo =====
 extern Servo motor;
-#define MOTOR_PIN 10
 void motorInit();
+void openDoor();
+void closeDoor();
 
-// ===== Magnet Sensor (SEN030600) =====
+// ===== Magnet Sensor =====
 #define MAGNET_PIN 13
 void magnetInit();
 bool isMagnetDetected();
 
-// ===== Ultrasonic Sensor (HC-SR04) =====
+// ===== Ultrasonic Sensor =====
 #define TRIG_PIN A5
 #define ECHO_PIN A4
 void ultrasonicInit();
 float getDistance();
 bool isObjectDetected(float range = 30.0);
+void handleUltrasonic();
 
 #endif
