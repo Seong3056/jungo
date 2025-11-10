@@ -1,70 +1,74 @@
+# ======================================
+# 🐍 Python / Django
+# ======================================
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
-*.pyc
 *.so
 *.egg-info/
-*.bak
-*.tmp
-*.orig
 *.spec
 
+# Virtualenv
 .venv/
 venv/
 env/
 ENV/
 env.bak/
 
-staticfiles/
-media/
+# Django
 *.log
 *.sqlite3
-*.db
-
-.DS_Store
-.AppleDouble
-.Trashes
-ehthumbs.db
-Desktop.ini
-*~
-.cache/
+db.sqlite3
+staticfiles/
+media/
+migrations/__pycache__/
 *.pid
-*.tar
-*.gz
-*.out
 *.lock
-*.swp
-*.swo
-*.tmp
 
+# IDE / Editor
 .vscode/
 .idea/
 *.code-workspace
+*.sublime-project
+*.sublime-workspace
 *.project
 *.settings/
-*.sublime-workspace
-*.sublime-project
 
+# OS junk files
+.DS_Store
+ehthumbs.db
+Desktop.ini
+Thumbs.db
+
+# Build / Packaging
+build/
+dist/
+*.tar
+*.gz
+*.zip
+*.out
+*.bak
+*.tmp
+*.orig
+
+# Node / Frontend
 node_modules/
 npm-debug.log
 yarn-debug.log
 yarn-error.log
-dist/
-build/
 
-*.img
-*.iso
-*.deb
-*.service
-*.sock
-run.sh~
-stop.sh~
+# Test / Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+logs/
+output/
 nohup.out
-embedded/__pycache__/
-embedded/build/
-embedded/dist/
 
+# Arduino / Embedded
 *.hex
 *.elf
 *.eep
@@ -74,28 +78,17 @@ embedded/dist/
 *.map
 *.ino.cpp
 *.arduino_build_*/
-*.ino.hex
-*.ino.bin
-*.ino.with_bootloader.hex
-*.ino.with_bootloader.bin
 .pio/
 .pioenvs/
 .piolibdeps/
-.clang_complete
-.gcc-flags.json
-.vscode/.browse.c_cpp.db*
-.vscode/c_cpp_properties.json
+embedded/__pycache__/
+embedded/build/
+embedded/dist/
 
-test/
-temp/
-sandbox/
-uploads/
-backups/
-
+# Ignore all except essential project files
 !README.md
 !manage.py
 !.gitignore
 !requirements.txt
 !start.sh
 !start.bat
-access_log.txt
