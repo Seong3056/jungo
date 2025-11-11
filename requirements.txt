@@ -11,7 +11,7 @@ tzdata==2025.1
 # ⚡ Real-time & WebSocket
 # ======================================
 channels==4.1.0
-daphne
+daphne==4.1.2                # 버전 명시 (Twisted 24.x와 호환 안정)
 twisted==24.7.0
 autobahn==23.6.2
 async-timeout==4.0.3
@@ -20,6 +20,7 @@ async-timeout==4.0.3
 # 🔌 Raspberry / Arduino Communication
 # ======================================
 pyserial==3.5
+pyserial-asyncio==0.6        # ✅ 추가: serial_asyncio 모듈용
 requests==2.32.3
 
 # ======================================
@@ -27,16 +28,16 @@ requests==2.32.3
 # ======================================
 opencv-python==4.10.0.84
 Pillow==11.0.0
-numpy
+numpy==1.26.4                # ✅ 명시: 3.13 호환 안정 버전
 
 # ======================================
 # 🧱 Server Utilities
 # ======================================
-whitenoise==6.7.0          # 정적파일 서빙
-gunicorn==22.0.0           # Linux 서버용 WSGI
-uvicorn==0.31.0            # ASGI 서버 (테스트용, 3.13 정식 지원)
-psutil==6.0.0              # 리소스 모니터링 (3.13 호환)
-python-dotenv==1.0.1       # 환경변수 관리
+whitenoise==6.7.0            # 정적파일 서빙
+gunicorn==22.0.0             # Linux 서버용 WSGI
+uvicorn==0.31.0              # ASGI 서버 (테스트용, 3.13 정식 지원)
+psutil==6.0.0                # 리소스 모니터링 (3.13 호환)
+python-dotenv==1.0.1         # 환경변수 관리
 
 # ======================================
 # 🧰 Developer Tools

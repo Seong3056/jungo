@@ -1,6 +1,8 @@
 import asyncio
 import serial_asyncio
 import time
+import os
+import platform
 from orders.models import Order
 from camera_module import capture_image
 from ai_module import analyze_image
@@ -18,8 +20,9 @@ class SerialProtocol(asyncio.Protocol):
         """시리얼 연결이 성립되었을 때"""
         self.transport = transport
         self.connected = True
-        print("✅ 시리얼 연결됨")
-        write_log("[INFO] Serial 연결됨")
+        port = getattr(transport.serial, "port", "Unknown")
+        print(f"✅ 시리얼 연결됨 ({port})")
+        write_log(f"[INFO] Serial 연결됨 ({port})")
 
     def data_received(self, data):
         """데이터가 수신될 때마다 호출"""
@@ -115,12 +118,24 @@ async def reconnect_serial():
 # ====== 시리얼 연결 시작 ======
 async def start_serial():
     loop = asyncio.get_running_loop()
+
+    # ✅ start.sh가 이미 .env.linux를 불러왔으므로 바로 환경 변수 사용
+    port = os.getenv("UNO_PORT", "/dev/ttyACM0")
+    baudrate = int(os.getenv("UNO_BAUD", "9600"))
+
     try:
         await serial_asyncio.create_serial_connection(
-            loop, SerialProtocol, "COM4", baudrate=9600
+            loop, SerialProtocol, port, baudrate=baudrate
         )
     except Exception as e:
         print(f"❌ Serial 연결 실패: {e}")
         write_log(f"[ERROR] Serial 연결 실패: {e}")
         await asyncio.sleep(3)
         await start_serial()
+
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(start_serial())
+    except KeyboardInterrupt:
+        print("🛑 Serial 모듈 종료됨")
