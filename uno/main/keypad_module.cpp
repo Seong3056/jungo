@@ -1,14 +1,16 @@
 #include "lock_module.h"
 
 char keys[ROWS][COLS] = {
-  {'1','2','3','A'},
-  {'4','5','6','B'},
-  {'7','8','9','C'},
-  {'*','0','#','D'}
+  { '1', '2', '3', 'A' },
+  { '4', '5', '6', 'B' },
+  { '7', '8', '9', 'C' },
+  { '*', '0', '#', 'D' }
 };
 
-byte rowPins[ROWS] = {6, 7, 8, 9};
-byte colPins[COLS] = {2, 3, 4, 5};
+// byte rowPins[ROWS] = {6, 7, 8, 9};
+// byte colPins[COLS] = {2, 3, 4, 5};
+byte rowPins[ROWS] = { 8, 4, 9, 5 };
+byte colPins[COLS] = { 6, 2, 7, 3 };
 
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 
@@ -64,6 +66,7 @@ void handleKeypad() {
         // ✅ 최종 전송
         String message = "CHECK:" + inputId + ":" + inputCode;
         Serial.println(message);
+        delay(10);
         lcd.clear();
         lcd.print("Checking...");
         delay(800);
