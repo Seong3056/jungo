@@ -1,7 +1,6 @@
 import os
 import time
 import cv2
-import numpy as np
 from datetime import datetime
 from config_loader import PROJECT_ROOT
 from logger import write_log
@@ -11,7 +10,7 @@ camera_busy = False
 
 
 def init_camera():
-    """Picamera2 카메라 초기화 (AI용 색상 유지 + 반사 억제 설정)"""
+    """Picamera2 카메라를 전역으로 한 번만 초기화 (컬러 원본 모드)"""
     global camera
 
     if camera is not None:
@@ -25,17 +24,15 @@ def init_camera():
         camera.configure(config)
         camera.start()
 
-        # 🔧 AI 분석용 고정 설정: 자동 노출 / 화이트밸런스 비활성화
+        # ✅ 자동 노출 및 화이트밸런스 활성화 (자연스러운 색감)
         controls = {
-            "AwbEnable": False,
-            "AeEnable": False,
-            "ExposureTime": 9000,  # 적정 노출로 반사 억제
-            "AnalogueGain": 1.0
+            "AwbEnable": True,     # 자동 화이트밸런스 켜기
+            "AeEnable": True,      # 자동 노출 켜기
         }
         camera.set_controls(controls)
 
-        write_log("[INFO] ✅ Picamera2 initialized successfully (Color AI mode).")
-        print("✅ Picamera2 initialized successfully (Color AI mode).")
+        write_log("[INFO] ✅ Picamera2 initialized successfully (Color original mode).")
+        print("✅ Picamera2 initialized successfully (Color original mode).")
         return camera
 
     except Exception as e:
@@ -45,43 +42,8 @@ def init_camera():
         return None
 
 
-def apply_color_ai_preprocessing(frame):
-    """
-    AI 인식률 향상을 위한 전처리:
-    - 감마 보정 (밝은 반사 억제)
-    - LAB 색공간에서 L 채널 대비 강화
-    - 색 정보 유지 (a,b 채널 그대로)
-    """
-    try:
-        # 1️⃣ 감마 보정 (밝은 반사 억제)
-        gamma = 0.8  # 1보다 작으면 어두워짐 → 반사 줄이기 효과
-        inv_gamma = 1.0 / gamma
-        table = np.array([(i / 255.0) ** inv_gamma * 255 for i in np.arange(0, 256)]).astype("uint8")
-        frame = cv2.LUT(frame, table)
-
-        # 2️⃣ LAB 변환 (밝기/색 분리)
-        lab = cv2.cvtColor(frame, cv2.COLOR_BGR2LAB)
-        l, a, b = cv2.split(lab)
-
-        # 3️⃣ L 채널 대비 강화 (equalizeHist)
-        l = cv2.equalizeHist(l)
-
-        # 4️⃣ 다시 합치기 (색 정보 유지)
-        merged = cv2.merge((l, a, b))
-        processed = cv2.cvtColor(merged, cv2.COLOR_LAB2BGR)
-
-        # 5️⃣ 약한 블러로 노이즈 완화
-        processed = cv2.GaussianBlur(processed, (3, 3), 0)
-
-        return processed
-
-    except Exception as e:
-        write_log(f"[WARN] AI 전처리 중 오류: {e}")
-        return frame
-
-
 def capture_image(filename: str = None):
-    """카메라로 사진 촬영 후 AI 분석용으로 전처리 + 저장"""
+    """Picamera2 컬러 사진 촬영 후 /media 폴더에 저장"""
     global camera, camera_busy
 
     if camera_busy:
@@ -107,16 +69,13 @@ def capture_image(filename: str = None):
             filename = f"photo_{timestamp}.jpg"
         output_path = os.path.join(media_dir, filename)
 
-        # 📸 촬영
+        # 📸 컬러 원본 촬영
         frame = camera.capture_array()
 
-        # ✅ 전처리 적용 (색상 유지 + 대비 향상 + 반사 억제)
-        processed = apply_color_ai_preprocessing(frame)
-
-        # 저장
-        cv2.imwrite(output_path, processed)
-        print(f"📸 사진 저장 완료 (AI 컬러용): {output_path}")
-        write_log(f"[INFO] 사진 촬영 완료 (AI 컬러용): {output_path}")
+        # ✅ 원본 컬러 그대로 저장
+        cv2.imwrite(output_path, frame)
+        print(f"📸 컬러 사진 저장 완료: {output_path}")
+        write_log(f"[INFO] 컬러 사진 저장 완료: {output_path}")
         return output_path
 
     except Exception as e:
@@ -129,7 +88,7 @@ def capture_image(filename: str = None):
 
 
 def release_camera():
-    """프로그램 종료 시 카메라 안전 해제"""
+    """프로그램 종료 시 카메라 해제"""
     global camera
     try:
         if camera:
