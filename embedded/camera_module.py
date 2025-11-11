@@ -11,7 +11,7 @@ camera_busy = False
 
 
 def init_camera():
-    """Picamera2 카메라 초기화 (AI용 노출 및 감마 보정 설정 포함)"""
+    """Picamera2 카메라 초기화 (AI용 색상 유지 + 반사 억제 설정)"""
     global camera
 
     if camera is not None:
@@ -25,17 +25,17 @@ def init_camera():
         camera.configure(config)
         camera.start()
 
-        # 🔧 AI 분석용 고정 제어값
+        # 🔧 AI 분석용 고정 설정: 자동 노출 / 화이트밸런스 비활성화
         controls = {
-            "AwbEnable": False,       # 자동 화이트밸런스 끄기
-            "AeEnable": False,        # 자동 노출 끄기
-            "ExposureTime": 9000,     # 반사 줄이기 위해 살짝 낮춤
+            "AwbEnable": False,
+            "AeEnable": False,
+            "ExposureTime": 9000,  # 적정 노출로 반사 억제
             "AnalogueGain": 1.0
         }
         camera.set_controls(controls)
 
-        write_log("[INFO] ✅ Picamera2 initialized successfully (AI optimized mode).")
-        print("✅ Picamera2 initialized successfully (AI optimized mode).")
+        write_log("[INFO] ✅ Picamera2 initialized successfully (Color AI mode).")
+        print("✅ Picamera2 initialized successfully (Color AI mode).")
         return camera
 
     except Exception as e:
@@ -45,34 +45,35 @@ def init_camera():
         return None
 
 
-def apply_ai_preprocessing(frame):
+def apply_color_ai_preprocessing(frame):
     """
     AI 인식률 향상을 위한 전처리:
-    - 감마 보정
-    - 반사광 억제용 밝기 클리핑
-    - 대비 강화(equalizeHist)
-    - 약한 블러로 노이즈 제거
+    - 감마 보정 (밝은 반사 억제)
+    - LAB 색공간에서 L 채널 대비 강화
+    - 색 정보 유지 (a,b 채널 그대로)
     """
     try:
-        # 1️⃣ 감마 보정 (밝기 과다 억제)
-        gamma = 0.8  # 1보다 작으면 어두워짐 (반사 억제)
+        # 1️⃣ 감마 보정 (밝은 반사 억제)
+        gamma = 0.8  # 1보다 작으면 어두워짐 → 반사 줄이기 효과
         inv_gamma = 1.0 / gamma
         table = np.array([(i / 255.0) ** inv_gamma * 255 for i in np.arange(0, 256)]).astype("uint8")
         frame = cv2.LUT(frame, table)
 
-        # 2️⃣ Grayscale 변환
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        # 2️⃣ LAB 변환 (밝기/색 분리)
+        lab = cv2.cvtColor(frame, cv2.COLOR_BGR2LAB)
+        l, a, b = cv2.split(lab)
 
-        # 3️⃣ 밝기 클리핑 (하이라이트 억제)
-        gray = np.clip(gray, 0, 230).astype(np.uint8)
+        # 3️⃣ L 채널 대비 강화 (equalizeHist)
+        l = cv2.equalizeHist(l)
 
-        # 4️⃣ 대비 강화 (히스토그램 평활화)
-        enhanced = cv2.equalizeHist(gray)
+        # 4️⃣ 다시 합치기 (색 정보 유지)
+        merged = cv2.merge((l, a, b))
+        processed = cv2.cvtColor(merged, cv2.COLOR_LAB2BGR)
 
-        # 5️⃣ 노이즈 완화 (가우시안 블러)
-        smoothed = cv2.GaussianBlur(enhanced, (3, 3), 0)
+        # 5️⃣ 약한 블러로 노이즈 완화
+        processed = cv2.GaussianBlur(processed, (3, 3), 0)
 
-        return smoothed
+        return processed
 
     except Exception as e:
         write_log(f"[WARN] AI 전처리 중 오류: {e}")
@@ -80,7 +81,7 @@ def apply_ai_preprocessing(frame):
 
 
 def capture_image(filename: str = None):
-    """카메라로 사진을 촬영하고 /media 폴더에 저장 (AI 분석용 보정 포함)"""
+    """카메라로 사진 촬영 후 AI 분석용으로 전처리 + 저장"""
     global camera, camera_busy
 
     if camera_busy:
@@ -109,13 +110,13 @@ def capture_image(filename: str = None):
         # 📸 촬영
         frame = camera.capture_array()
 
-        # ✅ AI용 전처리 수행
-        processed = apply_ai_preprocessing(frame)
+        # ✅ 전처리 적용 (색상 유지 + 대비 향상 + 반사 억제)
+        processed = apply_color_ai_preprocessing(frame)
 
         # 저장
         cv2.imwrite(output_path, processed)
-        write_log(f"[INFO] 사진 촬영 및 전처리 완료 (AI용): {output_path}")
-        print(f"📸 사진 저장 완료 (AI용): {output_path}")
+        print(f"📸 사진 저장 완료 (AI 컬러용): {output_path}")
+        write_log(f"[INFO] 사진 촬영 완료 (AI 컬러용): {output_path}")
         return output_path
 
     except Exception as e:
