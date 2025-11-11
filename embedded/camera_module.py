@@ -1,70 +1,113 @@
 import os
 import time
 import cv2
-from config_loader import PROJECT_ROOT, config
+from datetime import datetime
+from config_loader import PROJECT_ROOT
 from logger import write_log
 
+# 전역 Picamera2 인스턴스 및 상태
+camera = None
+camera_busy = False
 
-def check_camera():
+
+def init_camera():
     """
-    카메라 연결 여부 확인 (Picamera2 → OpenCV 순서)
+    Picamera2 카메라를 전역으로 한 번만 초기화합니다.
+    AI 분석용으로 자동 노출, 자동 화이트밸런스를 끄고 일정한 설정으로 고정합니다.
     """
+    global camera
+
+    if camera is not None:
+        return camera
+
     try:
-        # 1️⃣ Picamera2 우선 시도
         from picamera2 import Picamera2
-        cam = Picamera2()
-        cam.start()
-        cam.stop()
-        write_log("[INFO] ✅ Camera detected and ready (Picamera2).")
-        return True
+
+        camera = Picamera2()
+        config = camera.create_still_configuration(main={"size": (1280, 720)})
+        camera.configure(config)
+        camera.start()
+
+        # ✅ AI 분석용: 자동 기능 비활성화 + 일정한 노출값 유지
+        controls = {
+            "AwbEnable": False,       # 자동 화이트밸런스 비활성화
+            "AeEnable": False,        # 자동 노출 비활성화
+            "ExposureTime": 10000,    # 노출 시간(μs 단위, 환경에 따라 조정)
+            "AnalogueGain": 1.0       # 감도 고정
+        }
+        camera.set_controls(controls)
+
+        write_log("[INFO] ✅ Picamera2 initialized successfully (AI mode).")
+        print("✅ Picamera2 initialized successfully (AI mode).")
+        return camera
 
     except Exception as e:
-        write_log(f"[WARN] ⚠️ Picamera2 not available: {e}")
-
-        try:
-            # 2️⃣ OpenCV 카메라 확인
-            cap = cv2.VideoCapture(0)
-            if cap.isOpened():
-                cap.release()
-                write_log("[INFO] ✅ Camera detected and ready (OpenCV).")
-                return True
-            else:
-                write_log("[ERROR] ❌ No camera detected (OpenCV).")
-                return False
-
-        except Exception as e2:
-            write_log(f"[ERROR] ❌ Camera check failed: {e2}")
-            return False
-
-
-def capture_image():
-    """
-    카메라로 사진을 촬영하고 저장합니다.
-    실행 전 check_camera()를 통해 연결 여부를 먼저 확인합니다.
-    """
-    output_path = os.path.join(PROJECT_ROOT, config.get("camera", {}).get("output_path", "latest_photo.jpg"))
-
-    # --- 카메라 연결 확인 ---
-    if not check_camera():
-        print("❌ 카메라 연결 실패. 촬영 불가.")
-        write_log("[ERROR] 카메라 연결 실패로 인해 사진 촬영 불가.")
+        write_log(f"[ERROR] ❌ Picamera2 initialization failed: {e}")
+        print(f"❌ Picamera2 초기화 실패: {e}")
+        camera = None
         return None
 
+
+def capture_image(filename: str = None):
+    """
+    이미 초기화된 Picamera2 카메라로 사진을 촬영하고 /media 폴더에 저장합니다.
+    AI 분석용으로 대비가 향상된 흑백 이미지로 저장합니다.
+    """
+    global camera, camera_busy
+
+    if camera_busy:
+        write_log("[WARN] 카메라가 이미 촬영 중입니다. 요청 무시.")
+        return None
+    camera_busy = True
+
     try:
-        cam = cv2.VideoCapture(0)
-        if not cam.isOpened():
-            raise Exception("카메라를 열 수 없습니다.")
-        time.sleep(0.5)
-        ret, frame = cam.read()
-        if not ret:
-            raise Exception("사진 캡처 실패")
-        cv2.imwrite(output_path, frame)
-        cam.release()
-        print(f"📸 사진 저장 완료: {output_path}")
-        write_log(f"[INFO] 사진 촬영 완료: {output_path}")
+        if camera is None:
+            camera = init_camera()
+            if camera is None:
+                write_log("[ERROR] Picamera2 unavailable — capture aborted.")
+                camera_busy = False
+                return None
+
+        # 저장 폴더 생성
+        media_dir = os.path.join(PROJECT_ROOT, "media")
+        os.makedirs(media_dir, exist_ok=True)
+
+        # 파일명 자동 생성
+        if filename is None:
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            filename = f"photo_{timestamp}.jpg"
+        output_path = os.path.join(media_dir, filename)
+
+        # 📸 촬영
+        frame = camera.capture_array()
+
+        # ✅ AI 분석용 전처리 (밝기/대비 개선)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        enhanced = cv2.equalizeHist(gray)  # 히스토그램 평활화 (대비 향상)
+        cv2.imwrite(output_path, enhanced)
+
+        print(f"📸 사진 저장 완료 (AI용): {output_path}")
+        write_log(f"[INFO] 사진 촬영 완료 (AI용): {output_path}")
         return output_path
 
     except Exception as e:
-        print(f"⚠️ 사진 촬영 실패: {e}")
         write_log(f"[ERROR] 사진 촬영 실패: {e}")
+        print(f"⚠️ 사진 촬영 실패: {e}")
         return None
+
+    finally:
+        camera_busy = False
+
+
+def release_camera():
+    """프로그램 종료 시 카메라 해제"""
+    global camera
+    try:
+        if camera:
+            camera.stop()
+            camera = None
+            write_log("[INFO] 📷 Camera released successfully.")
+            print("📷 Camera released successfully.")
+    except Exception as e:
+        write_log(f"[WARN] Camera release failed: {e}")
+        print(f"⚠️ Camera release failed: {e}")
