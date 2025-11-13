@@ -10,7 +10,7 @@ camera_busy = False
 
 
 def init_camera():
-    """Picamera2 카메라를 전역으로 한 번만 초기화 (컬러 원본 모드)"""
+    """고품질 사진 촬영용 Picamera2 초기화 (실제 색감 최적화 스틸 모드)"""
     global camera
 
     if camera is not None:
@@ -18,21 +18,27 @@ def init_camera():
 
     try:
         from picamera2 import Picamera2
+        from libcamera import Transform
 
         camera = Picamera2()
-        config = camera.create_still_configuration(main={"size": (1280, 720)})
+
+        # 📌 스틸 모드 (정확한 색감 + 전체 ISP 파이프라인 사용)
+        config = camera.create_still_configuration(
+            main={"size": (3280, 2464)},  # 센서 원본 해상도
+            transform=Transform(rotation=-90)  # 화면 회전
+        )
         camera.configure(config)
         camera.start()
 
-        # ✅ 자동 노출 및 화이트밸런스 활성화 (자연스러운 색감)
-        controls = {
-            "AwbEnable": True,     # 자동 화이트밸런스 켜기
-            "AeEnable": True,      # 자동 노출 켜기
-        }
-        camera.set_controls(controls)
+        # 📌 자동 노출 + 자동 화이트밸런스 완전 활성화
+        camera.set_controls({
+            "AwbEnable": True,
+            "AeEnable": True,
+        })
 
-        write_log("[INFO] ✅ Picamera2 initialized successfully (Color original mode).")
-        print("✅ Picamera2 initialized successfully (Color original mode).")
+        write_log("[INFO] 📸 Picamera2 initialized (still mode, full color accuracy).")
+        print("📸 Picamera2 initialized (still mode, full color accuracy).")
+
         return camera
 
     except Exception as e:
@@ -43,11 +49,11 @@ def init_camera():
 
 
 def capture_image(filename: str = None):
-    """Picamera2 컬러 사진 촬영 후 /media 폴더에 저장"""
+    """컬러 정확도 최상급 촬영 후 /media 폴더에 저장"""
     global camera, camera_busy
 
     if camera_busy:
-        write_log("[WARN] 카메라가 이미 촬영 중입니다. 요청 무시.")
+        write_log("[WARN] 카메라 촬영 중 → 요청 무시.")
         return None
     camera_busy = True
 
@@ -55,11 +61,11 @@ def capture_image(filename: str = None):
         if camera is None:
             camera = init_camera()
             if camera is None:
-                write_log("[ERROR] Picamera2 unavailable — capture aborted.")
+                write_log("[ERROR] 😢 카메라 초기화 실패로 촬영 중단")
                 camera_busy = False
                 return None
 
-        # 저장 경로
+        # 저장 경로 생성
         media_dir = os.path.join(PROJECT_ROOT, "media")
         os.makedirs(media_dir, exist_ok=True)
 
@@ -67,15 +73,16 @@ def capture_image(filename: str = None):
         if filename is None:
             timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             filename = f"photo_{timestamp}.jpg"
+
         output_path = os.path.join(media_dir, filename)
 
-        # 📸 컬러 원본 촬영
+        # 📸 고품질 컬러 이미지 캡처 (스틸 모드 full ISP 적용됨)
         frame = camera.capture_array()
 
-        # ✅ 원본 컬러 그대로 저장
         cv2.imwrite(output_path, frame)
-        print(f"📸 컬러 사진 저장 완료: {output_path}")
-        write_log(f"[INFO] 컬러 사진 저장 완료: {output_path}")
+        print(f"📁 저장 완료: {output_path}")
+        write_log(f"[INFO] 사진 저장 완료: {output_path}")
+
         return output_path
 
     except Exception as e:
@@ -87,15 +94,16 @@ def capture_image(filename: str = None):
         camera_busy = False
 
 
+
 def release_camera():
-    """프로그램 종료 시 카메라 해제"""
+    """프로그램 종료 시 카메라 안전 해제"""
     global camera
     try:
         if camera:
             camera.stop()
             camera = None
-            write_log("[INFO] 📷 Camera released successfully.")
-            print("📷 Camera released successfully.")
+            write_log("[INFO] 📷 Camera released.")
+            print("📷 Camera released.")
     except Exception as e:
         write_log(f"[WARN] Camera release failed: {e}")
         print(f"⚠️ Camera release failed: {e}")
