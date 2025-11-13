@@ -22,7 +22,7 @@ void keypadInit();
 void handleKeypad();
 
 // ===== Servo =====
-extern Servo motor;
+#define relayPin 10
 void motorInit();
 void openDoor();
 void closeDoor();
@@ -33,8 +33,8 @@ void magnetInit();
 bool isMagnetDetected();
 
 // ===== Ultrasonic Sensor =====
-#define TRIG_PIN A5
-#define ECHO_PIN A4
+#define TRIG_PIN A1
+#define ECHO_PIN A0
 void ultrasonicInit();
 float getDistance();
 bool isObjectDetected(float range = 30.0);

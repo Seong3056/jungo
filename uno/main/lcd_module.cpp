@@ -1,6 +1,6 @@
 #include "lock_module.h"
 
-LiquidCrystal lcd(11, 12, A3, A2, A1, A0);
+LiquidCrystal lcd(11, 12, A5, A4, A3, A2);
 
 void lcdInit() {
   lcd.begin(16, 2);

@@ -3,14 +3,13 @@
 Servo motor;
 
 void motorInit() {
-  motor.attach(10);
-  motor.write(90);
+    pinMode(relayPin, OUTPUT);
 }
 
 void openDoor() {
-  motor.write(0);
+    digitalWrite(relayPin, HIGH);
 }
 
 void closeDoor() {
-  motor.write(90);
+    digitalWrite(relayPin, LOW);
 }

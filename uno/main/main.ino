@@ -1,31 +1,26 @@
 #include "lock_module.h"
 
-bool doorOpen = false;
-String lastMessage = "";
+bool doorLocked = false;
+bool doorOpen = false;   // 🔹 문이 열렸는지 상태 저장
 
-// ===================== LCD 안전 출력 (중복 방지) =====================
-void safeShowMessage(const String &msg, int delayTime = 1000) {
-  if (lastMessage != msg) {
-    showMessage(msg, delayTime);
-    lastMessage = msg;
-  }
-}
-
-// ===================== 초기 설정 =====================
 void setup() {
   Serial.begin(9600);
+
   lcdInit();
   keypadInit();
   motorInit();
   magnetInit();
-  ultrasonicInit();   // ✅ 초음파 센서 초기화 복구
+  ultrasonicInit();
 
-  safeShowMessage("System Ready", 1000);
-  showPrompt();
-  Serial.println("🔧 Arduino UNO Ready - Waiting for commands...");
+  closeDoor();   // 시작 시 문 잠금
+  doorLocked = true;
 }
 
-// ===================== 라즈베리 → 아두이노 명령 처리 =====================
+// ===============================================
+// 🔹 라즈베리 → 아두이노 직렬 통신 처리
+//    MATCH → 문 열기
+//    NO_MATCH → 접근 거부 메시지
+// ===============================================
 void handleSerialResponse() {
   if (!Serial.available()) return;
 
@@ -36,16 +31,16 @@ void handleSerialResponse() {
   Serial.print("📩 Received: ");
   Serial.println(res);
 
-  if (res == "MATCH") {                     // 인증 성공 → 문 열기
+  if (res == "MATCH") {             // 인증 성공 → 문 열기
     if (!doorOpen) {
       doorOpen = true;
       openDoor();
-      safeShowMessage("Door Open", 1000);
+      showMessage("Door Open", 1000);
       showPrompt();
     }
   }
-  else if (res == "NO_MATCH") {                // 인증 실패 → 표시만
-    safeShowMessage("ACCESS DENIED", 1000);
+  else if (res == "NO_MATCH") {     // 인증 실패
+    showMessage("ACCESS DENIED", 1000);
     showPrompt();
   }
   else {
@@ -54,22 +49,35 @@ void handleSerialResponse() {
   }
 }
 
-// ===================== 마그네틱 센서 (문 닫힘 감지) =====================
-void handleMagnet() {
-  if (isMagnetDetected() && doorOpen) {
-    Serial.println("CLOSE:1");      // 아두이노 → 라즈베리로 송신
-    doorOpen = false;
-    closeDoor();
-    safeShowMessage("Door Closed", 800);
-    showPrompt();
-  }
-}
-
-// ===================== 메인 루프 =====================
 void loop() {
-  handleKeypad();
+
+  // ======================================
+  // 🔹 0. 라즈베리 신호 처리 (MATCH/NO_MATCH)
+  // ======================================
   handleSerialResponse();
-  handleMagnet();
-  handleUltrasonic();
-  delay(100);
+
+  // ======================================
+  // 🔹 1. 마그네틱 센서 감지 → 문 잠금
+  // ======================================
+  if (isMagnetDetected()) {
+    if (!doorLocked) {        // 문 열렸는데 자석 감지 → 문 닫힘
+      closeDoor();
+      doorLocked = true;
+      doorOpen = false;       // 문 닫혔으므로 열림 상태 false
+    }
+  } else {
+    doorLocked = false;       // 문 열림 상태
+  }
+
+  // ======================================
+  // 🔹 2. 문이 잠긴 동안 초음파 감지
+  // ======================================
+  if (doorLocked) {
+    handleUltrasonic();       // 26cm 변화 감지 → ULTRA:1 전송
+  }
+
+  // ======================================
+  // 🔹 3. 키패드 처리
+  // ======================================
+  handleKeypad();
 }

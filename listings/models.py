@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from django.db import models
-from django.contrib.auth import get_user_model
-User = get_user_model()
-
 class Listing(models.Model):
     class Status(models.TextChoices):
         ACTIVE = 'ACTIVE','판매중'
@@ -15,5 +9,9 @@ class Listing(models.Model):
     description = models.TextField()
     price = models.PositiveIntegerField()
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.ACTIVE)
-    image = models.ImageField(upload_to='listing/', blank=False)  # 단일 이미지
+
+    image = models.ImageField(upload_to='listing/', blank=False)
+    capture_image = models.ImageField(upload_to='captured/', null=True, blank=True)
+    used_low_price = models.PositiveIntegerField(null=True, blank=True)   # 당근 기준 최저가
+
     created_at = models.DateTimeField(auto_now_add=True)
