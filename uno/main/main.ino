@@ -60,10 +60,12 @@ void loop() {
   // 🔹 1. 마그네틱 센서 감지 → 문 잠금
   // ======================================
   if (isMagnetDetected()) {
-    if (!doorLocked) {        // 문 열렸는데 자석 감지 → 문 닫힘
+    if (!doorLocked) {
       closeDoor();
+      delay(50);     // ← 릴레이 노이즈 안정화 시간
+      lcd.clear();   // ← 쓰레기 제거
+      showPrompt();  // 기본 메시지 복구
       doorLocked = true;
-      doorOpen = false;       // 문 닫혔으므로 열림 상태 false
     }
   } else {
     doorLocked = false;       // 문 열림 상태
