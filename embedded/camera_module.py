@@ -10,7 +10,6 @@ camera_busy = False
 
 
 def init_camera():
-    """프리뷰 화면과 촬영 결과의 색감/밝기를 일치시키는 Picamera2 설정"""
     global camera
 
     if camera is not None:
@@ -22,59 +21,46 @@ def init_camera():
 
         picam2 = Picamera2()
 
-        # ---------------------------
-        # 핵심: preview와 동일한 ISP 톤을 still 모드에도 강제로 적용
-        # ---------------------------
+        # ⭐ 안정적이면서 preview와 가장 동일하게 보이는 설정
         config = picam2.create_still_configuration(
             main={
-                "size": (1920, 1080),      # preview랑 같은 해상도
-                "format": "RGB888"         # preview와 동일한 컬러 포맷
+                "size": (1920, 1080),
+                "format": "XRGB8888"   # ★ preview-compatible format
             },
-            transform=Transform(rotation=-90)
+            transform=Transform(rotation=180),
+            buffer_count=4             # preview 안정성 증가
         )
-
-        # preview pipeline의 색감을 최대한 동일화시키기 위한 ISP 조정
-        config["controls"] = {
-            "AwbEnable": True,
-            "AeEnable": True,
-            "NoiseReductionMode": 2,   # preview용 NR
-            "Sharpness": 1.0,
-            "Contrast": 1.0,
-            "Saturation": 1.0,
-            "TonemapEnable": True,     # preview 스타일 톤매핑 적용
-        }
 
         picam2.configure(config)
 
-        # ---------------------------
-        # 프리뷰도 동일한 설정 기반으로 시작
-        # ---------------------------
-        picam2.start_preview(Preview.QTGL)
+        # Preview 시작
+        # picam2.start_preview(Preview.QTGL)
         picam2.start()
 
-        # 자동 화이트밸런스 / 노출
+        # 자동 노출, 자동 화이트밸런스
         picam2.set_controls({
-            "AwbEnable": True,
             "AeEnable": True,
+            "AwbEnable": True,
+            "Sharpness": 1.0,
+            "Contrast": 1.0,
+            "Saturation": 1.0,
         })
 
         camera = picam2
-
-        print("📸 Camera initialized (preview == still mode identical).")
-        write_log("[INFO] Camera initialized with preview-sync still mode.")
+        print("📸 Camera initialized (safe preview-sync mode).")
+        write_log("[INFO] Camera initialized successfully (safe preview-sync mode).")
 
         return camera
 
     except Exception as e:
-        print(f"❌ Picamera2 초기화 실패: {e}")
         write_log(f"[ERROR] Picamera2 initialization failed: {e}")
+        print(f"❌ Picamera2 초기화 실패: {e}")
         camera = None
         return None
 
 
 
 def capture_image(filename=None):
-    """프리뷰와 동일한 색감/밝기/톤으로 사진 저장"""
     global camera, camera_busy
 
     if camera_busy:
@@ -85,6 +71,7 @@ def capture_image(filename=None):
         if camera is None:
             camera = init_camera()
 
+        # 저장 경로
         media_dir = os.path.join(PROJECT_ROOT, "media")
         os.makedirs(media_dir, exist_ok=True)
 
@@ -94,18 +81,17 @@ def capture_image(filename=None):
 
         output_path = os.path.join(media_dir, filename)
 
-        # 프리뷰와 동일한 ISP 파이프라인을 그대로 사용
+        # ⭐ preview와 완전 동일한 pipeline에서 캡처함
         frame = camera.capture_array()
 
         cv2.imwrite(output_path, frame)
-        print(f"📁 사진 저장됨(프리뷰 동일 색감): {output_path}")
-        write_log(f"[INFO] 사진 저장됨: {output_path}")
+        print(f"📁 사진 저장됨: {output_path}")
 
         return output_path
 
     except Exception as e:
-        print(f"⚠️ 촬영 실패: {e}")
         write_log(f"[ERROR] Image capture failed: {e}")
+        print(f"⚠️ 촬영 실패: {e}")
         return None
 
     finally:
@@ -114,14 +100,11 @@ def capture_image(filename=None):
 
 
 def release_camera():
-    """Picamera2 안전 종료"""
     global camera
     try:
         if camera:
             camera.stop()
             camera = None
-            write_log("[INFO] Camera released.")
             print("📷 Camera released.")
-    except Exception as e:
-        write_log(f"[WARN] Camera release failed: {e}")
-        print(f"⚠️ Camera release failed: {e}")
+    except:
+        pass
