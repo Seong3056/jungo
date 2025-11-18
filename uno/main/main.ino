@@ -1,8 +1,38 @@
 #include "lock_module.h"
 
 bool doorLocked = false;
-bool doorOpen = false;   // 🔹 문이 열렸는지 상태 저장
+bool doorOpen = false;
+bool ultraSentAfterClose = false;
 
+String serialBuffer = "";
+
+// ------------------------------------------------------
+// 🔹 MATCH / NO_MATCH 처리
+// ------------------------------------------------------
+void handleSerialResponse() {
+  if (!Serial.available()) return;
+
+  String res = Serial.readStringUntil('\n');
+  res.trim();
+  if (res.length() == 0) return;
+
+  if (res == "MATCH") {
+    if (!doorOpen) {
+      doorOpen = true;
+      openDoor();
+      showMessage("Door Open", 1000);
+      showPrompt();
+    }
+  }
+  else if (res == "NO_MATCH") {
+    showMessage("ACCESS DENIED", 1000);
+    showPrompt();
+  }
+}
+
+// ------------------------------------------------------
+// setup
+// ------------------------------------------------------
 void setup() {
   Serial.begin(9600);
 
@@ -12,74 +42,45 @@ void setup() {
   magnetInit();
   ultrasonicInit();
 
-  closeDoor();   // 시작 시 문 잠금
+  closeDoor();
   doorLocked = true;
+  ultraSentAfterClose = false;
 }
 
-// ===============================================
-// 🔹 라즈베리 → 아두이노 직렬 통신 처리
-//    MATCH → 문 열기
-//    NO_MATCH → 접근 거부 메시지
-// ===============================================
-void handleSerialResponse() {
-  if (!Serial.available()) return;
-
-  String res = Serial.readStringUntil('\n');
-  res.trim();
-  if (res.length() == 0) return;
-
-  Serial.print("📩 Received: ");
-  Serial.println(res);
-
-  if (res == "MATCH") {             // 인증 성공 → 문 열기
-    if (!doorOpen) {
-      doorOpen = true;
-      openDoor();
-      showMessage("Door Open", 1000);
-      showPrompt();
-    }
-  }
-  else if (res == "NO_MATCH") {     // 인증 실패
-    showMessage("ACCESS DENIED", 1000);
-    showPrompt();
-  }
-  else {
-    Serial.print("⚠️ Unknown command: ");
-    Serial.println(res);
-  }
-}
-
+// ------------------------------------------------------
+// loop
+// ------------------------------------------------------
 void loop() {
 
-  // ======================================
-  // 🔹 0. 라즈베리 신호 처리 (MATCH/NO_MATCH)
-  // ======================================
+  // 0. 라즈베리 응답 처리
   handleSerialResponse();
 
-  // ======================================
-  // 🔹 1. 마그네틱 센서 감지 → 문 잠금
-  // ======================================
+  // 1. 문 닫힘 감지 → ULTRA 리셋
   if (isMagnetDetected()) {
     if (!doorLocked) {
       closeDoor();
-      delay(50);     // ← 릴레이 노이즈 안정화 시간
-      lcd.clear();   // ← 쓰레기 제거
-      showPrompt();  // 기본 메시지 복구
+      delay(50);
+      lcd.clear();
+      showPrompt();
+
       doorLocked = true;
+      doorOpen = false;
+      ultraSentAfterClose = false;
     }
   } else {
-    doorLocked = false;       // 문 열림 상태
+    doorLocked = false;
   }
 
-  // ======================================
-  // 🔹 2. 문이 잠긴 동안 초음파 감지
-  // ======================================
-  if (doorLocked) {
-    handleUltrasonic();       // 26cm 변화 감지 → ULTRA:1 전송
+  // 2. 문 닫힌 후 초음파 감지 1회만 전송
+  if (doorLocked && !ultraSentAfterClose) {
+    float d = getUltrasonicDistance();   // ⭐ 모듈에서 가져옴
+
+    if (d > 5 && d < 26) {
+      Serial.println("ULTRA:1");
+      ultraSentAfterClose = true;  // 1회만 전송
+    }
   }
 
-  // ======================================
-  // 🔹 3. 키패드 처리
-  // ======================================
+  // 3. 키패드 처리
   handleKeypad();
 }

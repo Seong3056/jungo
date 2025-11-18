@@ -1,20 +1,23 @@
 #include "lock_module.h"
 
-LiquidCrystal lcd(11, 12, A5, A4, A3, A2);
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 void lcdInit() {
-  lcd.begin(16, 2);
-  lcd.clear();
+    lcd.init();
+    lcd.backlight();
+    lcd.clear();
 }
 
 void showMessage(const String &msg, int delayTime) {
-  lcd.clear();
-  lcd.print(msg);
-  delay(delayTime);
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print(msg);
+    delay(delayTime);
 }
 
 void showPrompt() {
-  lcd.clear();
-  lcd.print("Enter ID:");
-  lcd.setCursor(0, 1);
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Enter ID:");
+    lcd.setCursor(0, 1);
 }

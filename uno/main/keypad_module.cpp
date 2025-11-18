@@ -7,8 +7,6 @@ char keys[ROWS][COLS] = {
   { '*', '0', '#', 'D' }
 };
 
-// byte rowPins[ROWS] = {6, 7, 8, 9};
-// byte colPins[COLS] = {2, 3, 4, 5};
 byte rowPins[ROWS] = { 8, 4, 9, 5 };
 byte colPins[COLS] = { 6, 2, 7, 3 };
 
@@ -16,93 +14,150 @@ Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 
 String inputId = "";
 String inputCode = "";
-bool enteringId = true;  // 현재 상품 ID 입력 중인지 여부
+bool enteringId = true;
 const int CODE_LEN = 4;
 
-void keypadInit() {
-  keypad.setDebounceTime(20);
-  keypad.setHoldTime(50);
+// ---------------------------------------------------
+// LCD Helper
+// ---------------------------------------------------
+static void showEnterIdPrompt() {
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Enter ID:");
   lcd.setCursor(0, 1);
 }
 
+static void showEnterCodePrompt() {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Enter Code:");
+  lcd.setCursor(0, 1);
+}
+
+static void showTempMessage(const char* msg, unsigned long delayMs = 800) {
+  lcd.clear();
+  lcd.print(msg);
+  delay(delayMs);
+}
+
+// ---------------------------------------------------
+// 입력 초기화
+// ---------------------------------------------------
+static void resetInputState() {
+  inputId = "";
+  inputCode = "";
+  enteringId = true;
+  showEnterIdPrompt();
+}
+
+// ---------------------------------------------------
+// * 키 처리
+// ---------------------------------------------------
+static void handleStarKey() {
+  resetInputState();
+}
+
+// ---------------------------------------------------
+// # 키 처리
+// ---------------------------------------------------
+static void handleHashKey() {
+  if (enteringId) {
+    if (inputId.length() > 0) {
+      enteringId = false;
+      showEnterCodePrompt();
+    } else {
+      showTempMessage("Enter ID first");
+      showEnterIdPrompt();
+    }
+  } else {
+    if (inputCode.length() == CODE_LEN && inputId.length() > 0) {
+      String message = "CHECK:" + inputId + ":" + inputCode;
+      Serial.println(message);
+      delay(10);
+
+      lcd.clear();
+      lcd.print("Checking...");
+      delay(800);
+
+      resetInputState();
+    } else {
+      showTempMessage("Incomplete");
+      showEnterIdPrompt();
+    }
+  }
+}
+
+// ---------------------------------------------------
+// 숫자키 처리
+// ---------------------------------------------------
+static void handleDigitKey(char key) {
+  if (enteringId) {
+    if (inputId.length() < 8) {
+      inputId += key;
+      lcd.print(key);
+    }
+  } else {
+    if (inputCode.length() < CODE_LEN) {
+      inputCode += key;
+      lcd.print(key);
+    }
+  }
+}
+
+// ---------------------------------------------------
+// 🔥 A 키 → 초음파 → 문 강제 오픈
+// ---------------------------------------------------
+static void handleAKey() {
+  extern float getUltrasonicDistance();
+  extern void openDoor();
+  extern bool doorLocked;   // ⭐ main.ino 변수 가져오기
+  extern bool doorOpen;
+
+  float d = getUltrasonicDistance();
+
+  if (d > 26) {
+    // 🔥 강제 문 열기 (마그네틱 감지와 상관없이)
+    openDoor();
+    doorLocked = false;   // ⭐ 강제로 문이 열린 상태로 전환
+    doorOpen = true;
+
+    showTempMessage("Force Open", 800);
+    showEnterIdPrompt();
+  } else {
+    showTempMessage("Object Detected", 800);
+    showEnterIdPrompt();
+  }
+}
+
+
+// ---------------------------------------------------
+void keypadInit() {
+  keypad.setDebounceTime(20);
+  keypad.setHoldTime(50);
+  resetInputState();
+}
+
+// ---------------------------------------------------
 void handleKeypad() {
   char key = keypad.getKey();
   if (!key) return;
 
-  // 초기화 키: *
+  if (key == 'A') {
+    handleAKey();
+    return;
+  }
+
   if (key == '*') {
-    inputId = "";
-    inputCode = "";
-    enteringId = true;
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("Enter ID:");
-    lcd.setCursor(0, 1);
+    handleStarKey();
     return;
   }
 
-  // 입력 완료 키: #
   if (key == '#') {
-    if (enteringId) {
-      if (inputId.length() > 0) {
-        enteringId = false;
-        lcd.clear();
-        lcd.setCursor(0, 0);
-        lcd.print("Enter Code:");
-        lcd.setCursor(0, 1);
-      } else {
-        lcd.clear();
-        lcd.print("Enter ID first");
-        delay(800);
-        lcd.clear();
-        lcd.print("Enter ID:");
-        lcd.setCursor(0, 1);
-      }
-    } else {
-      if (inputCode.length() == CODE_LEN && inputId.length() > 0) {
-        // ✅ 최종 전송
-        String message = "CHECK:" + inputId + ":" + inputCode;
-        Serial.println(message);
-        delay(10);
-        lcd.clear();
-        lcd.print("Checking...");
-        delay(800);
-
-        // 초기 상태 복귀
-        inputId = "";
-        inputCode = "";
-        enteringId = true;
-        lcd.clear();
-        lcd.setCursor(0, 0);
-        lcd.print("Enter ID:");
-        lcd.setCursor(0, 1);
-      } else {
-        lcd.clear();
-        lcd.print("Incomplete");
-        delay(800);
-        lcd.clear();
-        lcd.print("Enter ID:");
-        lcd.setCursor(0, 1);
-      }
-    }
+    handleHashKey();
     return;
   }
 
-  // 숫자 입력 처리
   if (isdigit(key)) {
-    if (enteringId) {
-      if (inputId.length() < 8) {  // ID는 최대 8자리로 제한
-        inputId += key;
-        lcd.print(key);  // ID 출력
-      }
-    } else {
-      if (inputCode.length() < CODE_LEN) {
-        inputCode += key;
-        lcd.print(key);  // 비밀번호 출력
-      }
-    }
+    handleDigitKey(key);
   }
 }
