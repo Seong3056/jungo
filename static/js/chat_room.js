@@ -147,7 +147,8 @@
       return;
     }
     if (orderConfirmed && confirmationCode) {
-      purchaseCodeEl.innerHTML = `${codeTexts.completePrefix}<span class="chat-purchase-code__value">${confirmationCode}</span>`;
+      // purchaseCodeEl.innerHTML =
+      //   `${codeTexts.completePrefix}<span class="chat-purchase-code__value">${confirmationCode}</span>`;
       if (triggerAlert && !buyerNotifiedForCode) {
         alert(`${codeTexts.completePrefix}${confirmationCode}`);
         buyerNotifiedForCode = true;

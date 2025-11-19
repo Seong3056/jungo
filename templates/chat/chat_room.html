@@ -86,23 +86,27 @@
         </div>
       </form>
       {% if request.user == room.buyer %}
-      <div class="chat-purchase-code"
-           data-empty-text="구매를 진행하면 수령 확인 코드를 받게 됩니다."
-           data-pending-text="판매자의 구매확정을 기다리고 있습니다."
-           data-complete-prefix="수령 확인 코드: "
-           data-initial-code="{% if order and order.confirmation_code %}{{ order.confirmation_code }}{% endif %}"
-           data-initial-state="{% if order %}{% if order.escrow_state == 'RELEASED' %}released{% else %}pending{% endif %}{% else %}none{% endif %}">
-        {% if order %}
-          {% if order.escrow_state == 'RELEASED' and order.confirmation_code %}
-            수령 확인 코드: <span class="chat-purchase-code__value">{{ order.id }} ↵ {{ order.confirmation_code }} ↵</span>
-          {% else %}
-            판매자의 구매확정을 기다리고 있습니다.
-          {% endif %}
-        {% else %}
-          구매를 진행하면 수령 확인 코드를 받게 됩니다.
-        {% endif %}
-      </div>
+  <div class="chat-purchase-code"
+       data-empty-text="구매를 진행하면 수령 확인 코드를 받게 됩니다."
+       data-pending-text="판매자의 구매확정을 기다리고 있습니다."
+       data-complete-prefix="수령 확인 코드: "
+       data-initial-code="{% if order and order.confirmation_code %}{{ order.id }} ↵ {{ order.confirmation_code }} ↵{% endif %}"
+       data-initial-state="{% if order %}{% if order.escrow_state == 'RELEASED' %}released{% else %}pending{% endif %}{% else %}none{% endif %}">
+
+    {% if order %}
+      {% if order.escrow_state == 'RELEASED' and order.confirmation_code %}
+        수령 확인 코드:
+        <span class="chat-purchase-code__value">
+          {{ order.id }} ↵ {{ order.confirmation_code }} ↵
+        </span>
+      {% else %}
+        판매자의 구매확정을 기다리고 있습니다.
       {% endif %}
+    {% else %}
+      구매를 진행하면 수령 확인 코드를 받게 됩니다.
+    {% endif %}
+  </div>
+{% endif %}
     </div>
   </section>
 </div>
