@@ -1,19 +1,45 @@
 {% extends "base.html" %}
 {% load humanize %}
-{% block title %}{{ object.title }} - 상세보기
+{% block title %}{{ object.title }} - 상세보기{% endblock %}
 
-{% endblock %}
 {% block content %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+
 <div class="container">
   <div class="glass" style="padding:24px;max-width:900px;margin:0 auto;">
-    <h2 style="margin:0 0 6px 0;">{{ object.title }}</h2>
-    {% if object.image %}
-    <img src="{{ object.image.url }}" alt=""
-      style="width:100%;border-radius:16px;object-fit:cover;max-height:520px;margin:12px 0 0;" />
-    {% endif %}
-    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+    <h2 style="margin:0 0 6px 0;padding: 7px; font-size: 24px;font-weight: 700;">{{ object.title }}</h2>
+    
+    <div class="swiper" style="width:100%;overflow:hidden;border-radius:24px;">
+      <div class="swiper-wrapper">
+
+        {% if object.image %}
+        <div class="swiper-slide">
+          <img src="{{ object.image.url }}" style="width:100%;object-fit:cover;max-height:520px;">
+        </div>
+        {% endif %}
+
+        {% if object.capture_image %}
+        <div class="swiper-slide">
+          <img src="{{ object.capture_image.url }}" style="width:100%;object-fit:cover;max-height:520px;">
+        </div>
+        {% endif %}
+
+      </div>
+
+
+      <!-- 페이징 -->
+      <div class="swiper-pagination"></div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:16px;justify-content: space-between;margin-bottom: 12px;">
       <p style="font-size:18px;font-weight:600;margin:0;">{{ object.price|intcomma }} 원</p>
       <span style="color:gray;">판매자: {{ object.seller.username }}</span>
+    </div>
+
+    <div class="used-price" style="font-size:12px;font-weight:600;margin-top:5px;">      
+      {% if object.used_low_price %}
+        AI 탐색 중고가 : {{ object.used_low_price|intcomma }} 원
+      {% endif %}
     </div>
 
     <div style="margin-top:16px;">{{ object.description|linebreaks }}</div>
@@ -23,5 +49,21 @@
 {% if request.user != object.seller %}
 <a href="{% url 'chat:chat_room_create' object.id %}" class="btn">💬 판매자와 대화하기</a>
 {% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+<script>
+  const swiper = new Swiper('.swiper', {
+    loop: true,              // 🔁 무한 반복
+    speed: 800,            // 슬라이드 전환 속도
+    autoplay: {
+      delay: 2500,          // 자동 슬라이드 시간
+      disableOnInteraction: false,
+    },
+    pagination: {
+      el: '.swiper-pagination',
+      clickable: true
+    },    
+  });
+</script>
 
 {% endblock %}

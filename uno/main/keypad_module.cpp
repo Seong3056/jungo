@@ -124,7 +124,7 @@ static void handleAKey() {
     showTempMessage("Force Open", 800);
     showEnterIdPrompt();
   } else {
-    showTempMessage("Object Detected", 800);
+    showTempMessage("Object Inside", 800);
     showEnterIdPrompt();
   }
 }
@@ -142,7 +142,7 @@ void handleKeypad() {
   char key = keypad.getKey();
   if (!key) return;
 
-  if (key == 'A') {
+  if (key == 'A' || key == 'B' || key == 'C' || key == 'D') {
     handleAKey();
     return;
   }

@@ -5,7 +5,7 @@
 	border: 1px solid rgba(255, 255, 255, .25);
 	background: rgb(255 0 0 / 10%);
 	outline: none;
-	min-width: 200px;
+	min-width: 400px;
 	color: var(--text);
 }
 
@@ -103,6 +103,35 @@
     background: rgba(255,255,255,.08);
 }
 
+.swiper-pagination {
+  bottom: 6px !important;   /* 이미지 아래쪽 안쪽으로 위치 고정 */
+  top: auto !important;
+  z-index: 9999 !important;
+  position: relative !important;
+}
+
+:root[data-theme='dark'] .used-price {
+  color: rgba(255,255,255,0.45);
+}
+
+/* 🌞 라이트모드 */
+:root:not([data-theme='dark']) .used-price {
+  color: rgba(0,0,0,0.45);
+}
+:root:not([data-theme='dark']) .swiper-pagination-bullet-active {
+    background-color: rgb(255 0 0 / 30%) ;
+}
+
+/* 🌙 다크 모드 */
+:root[data-theme='dark'] .swiper-pagination-bullet {
+    background-color: white !important;
+}
+
+:root[data-theme='dark'] .swiper-pagination-bullet-active {
+        background-color: rgba(255,255,255,.25) ;
+}
+
+
 @media (max-width: 639px) {
     .form-card {
         padding: 24px 18px;
@@ -118,3 +147,4 @@
         width: 100%;
     }
 }
+
