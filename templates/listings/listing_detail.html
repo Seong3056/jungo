@@ -14,13 +14,13 @@
 
         {% if object.image %}
         <div class="swiper-slide">
-          <img src="{{ object.image.url }}" style="width:100%;object-fit:cover;max-height:520px;">
+          <img src="{{ object.image.url }}" style="width:100%;object-fit:contain ;max-height:520px;">
         </div>
         {% endif %}
 
         {% if object.capture_image %}
         <div class="swiper-slide">
-          <img src="{{ object.capture_image.url }}" style="width:100%;object-fit:cover;max-height:520px;">
+          <img src="{{ object.capture_image.url }}" style="width:100%;object-fit:contain ;max-height:520px;">
         </div>
         {% endif %}
 

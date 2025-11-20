@@ -6,6 +6,7 @@ from orders.models import Order
 from embedded.camera_module import init_camera, capture_image
 from ai_module import analyze_image
 from logger import write_log
+from listings.models import Listing
 
 
 class SerialProtocol(asyncio.Protocol):
@@ -47,34 +48,80 @@ class SerialProtocol(asyncio.Protocol):
     async def handle_data(self, message):
         """메시지 분석 및 분기 처리"""
         try:
-            # ✅ 초음파 감지
+            # -------------------------------
+            # ULTRA 감지 처리
+            # -------------------------------
             if message.startswith("ULTRA:"):
                 _, detected = message.split(":", 1)
-                if detected == "1":
-                    now = time.time()
-                    # 3초 간격 + 처리 중에는 무시
-                    if now - self.last_detection_time > 3 and not self.processing:
-                        self.last_detection_time = now
-                        self.processing = True  # 🔒 전체 프로세스 잠금
-                        write_log("[INFO] 초음파 감지됨 → 촬영 및 AI 분석 시작")
 
-                        # ✅ 카메라 보장
-                        await asyncio.to_thread(init_camera)
+                if detected != "1":
+                    return
 
-                        # ✅ 사진 촬영
-                        image_path = await asyncio.to_thread(capture_image)
-                        if image_path:
-                            # ✅ AI 분석
-                            await asyncio.to_thread(analyze_image, image_path)
+                now = time.time()
 
-                        # ✅ 프로세스 완료 → 다시 감지 가능
-                        self.processing = False
-                        write_log("[INFO] 촬영 및 분석 완료 → 초음파 감지 재활성화")
+                # 3초 이내 또는 처리 중이면 무시
+                if now - self.last_detection_time <= 3 or self.processing:
+                    write_log("[WARN] 감지 무시됨 (중복 감지 또는 처리 중)")
+                    return
 
-                    else:
-                        write_log("[WARN] 감지 무시 (분석 중 또는 너무 짧은 간격)")
+                # 감지 시간 등록 + 처리 시작
+                self.last_detection_time = now
+                self.processing = True
+                write_log("[INFO] 물체 감지됨 → 촬영 및 분석 시작")
 
-            # ✅ 주문 코드 검증
+                try:
+                    # --------------------------------------
+                    # 🚨 Listing 테이블에서 최신 레코드 가져오기
+                    #     *(async context → ORM 호출은 thread로)*
+                    # --------------------------------------
+                    from listings.models import Listing
+
+                    listing = await asyncio.to_thread(
+                        lambda: Listing.objects.order_by("-id").first()
+                    )
+
+                    # --------------------------------------
+                    # 🚫 이미 이미지가 존재하면 촬영 및 분석 스킵
+                    # --------------------------------------
+                    if listing and listing.capture_image:
+                        write_log("[INFO] Listing에 이미 사진 존재 → 촬영/분석 스킵")
+                        print("⚠ Listing.capture_image 이미 존재 → 촬영하지 않음")
+                        return
+
+                    # 카메라 초기화
+                    await asyncio.to_thread(init_camera)
+
+                    # 촬영
+                    image_path = await asyncio.to_thread(capture_image)
+                    if not image_path:
+                        write_log("[ERROR] 촬영 실패(image_path 없음)")
+                        return
+
+                    # --------------------------------------
+                    # 📌 촬영된 이미지 저장: listing.capture_image
+                    # --------------------------------------
+                    if listing:
+                        def save_image():
+                            listing.capture_image = image_path
+                            listing.save()
+
+                        await asyncio.to_thread(save_image)
+
+                    # AI 분석
+                    await asyncio.to_thread(analyze_image, image_path)
+
+                    write_log("[INFO] 촬영 → 분석 완료")
+
+                except Exception as e:
+                    write_log(f"[ERROR] 촬영/분석 과정 예외: {e}")
+
+                finally:
+                    self.processing = False
+                    return
+
+            # -------------------------------
+            # CHECK 처리
+            # -------------------------------
             elif message.startswith("CHECK:"):
                 parts = message.split(":", maxsplit=2)
                 if len(parts) >= 3:
@@ -88,8 +135,13 @@ class SerialProtocol(asyncio.Protocol):
 
         except Exception as e:
             write_log(f"[ERROR] handle_data 예외: {e}")
-            print(f"⚠️ handle_data 예외: {e}")
-            self.processing = False  # 🚨 예외 시에도 잠금 해제
+
+        finally:
+            if self.processing:
+                self.processing = False
+
+
+
 
     def check_order(self, listing_id, code):
         """DB 주문 코드 검증"""
