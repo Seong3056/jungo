@@ -108,3 +108,48 @@ def release_camera():
             print("📷 Camera released.")
     except:
         pass
+
+
+
+def is_empty_image(img_path,  threshold=0.92):
+    import cv2
+    import numpy as np
+    """
+    두 이미지(img_path, empty.jpg)를 비교하여 같으면 True 반환.
+    threshold = 0.92 → 92% 이상 동일하면 True 취급.
+    """
+    empty_path="media/empty.jpg"
+    try:
+        img1 = cv2.imread(img_path)
+        img2 = cv2.imread(empty_path)
+
+        # 이미지 읽기 실패 시 False
+        if img1 is None or img2 is None:
+            return False
+
+        # 동일 크기로 맞추기
+        img1 = cv2.resize(img1, (320, 240))
+        img2 = cv2.resize(img2, (320, 240))
+
+        # 차이 계산
+        diff = cv2.absdiff(img1, img2)
+        non_zero = np.count_nonzero(diff)
+        total = diff.size
+
+        # 유사도 계산
+        similarity = 1 - (non_zero / total)
+
+        # threshold 이상이면 "같다"
+        return similarity >= threshold
+
+    except Exception as e:
+        print(f"[ERROR] is_empty_image 예외: {e}")
+        return False
+
+def delete_image(img_path):
+    try:
+        if os.path.exists(img_path):
+            os.remove(img_path)
+            print(f"🗑 이미지 삭제됨: {img_path}")
+    except Exception as e:
+        print(f"[ERROR] 이미지 삭제 실패: {e}")
