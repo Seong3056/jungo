@@ -130,7 +130,7 @@ def analyze_image(image_path: str):
             # 3-2. used_price 배열 → 최저가 저장
             if used_low is not None:
                 if used_low < 1000:
-                    last_listing.used_low_price = used_low *10000
+                    last_listing.used_low_price = used_low * 1000
                 else:
                     last_listing.used_low_price = used_low
                 write_log(f"[DB] Listing({last_listing.id}) used_low_price={used_low}")
