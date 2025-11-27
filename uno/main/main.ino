@@ -1,57 +1,10 @@
 #include "lock_module.h"
 
-bool doorLocked = false;
-bool doorOpen = false;
-bool detectAfterClose = true;
+bool doorOpen = false;   // 문이 열렸는지
+bool doorLocked = false; // 문이 잠겼는지
 
-String serialBuffer = "";
+unsigned long lastMagCheck = 0;
 
-// ------------------------------------------------------
-// 🔹 MATCH / NO_MATCH 처리
-// ------------------------------------------------------
-void handleSerialResponse() {
-  if (!Serial.available()) return;
-
-  String res = Serial.readStringUntil('\n');
-  res.trim();
-  if (res.length() == 0) return;
-
-  
-  if (res == "MATCH") {
-    if (!doorOpen) {
-      doorOpen = true;
-      openDoor();
-      detectAfterClose = false;
-      showMessage("Door Open", 1000);
-      showPrompt();
-      
-    }
-  }
-  else if (res == "NO_MATCH") {
-    showMessage("ACCESS DENIED", 1000);
-    showPrompt();
-  }
-  else if (res == "OPEN"){
-    detectAfterClose = true;
-    openDoor();
-    showMessage("Door Open", 1000);
-    showPrompt();
-    
-  }
-  else if (res == "DENIED"){
-    showMessage("Object Inside", 1000);
-    showPrompt();
-  }
-  else if (res == "CLOSE"){
-    closeDoor();
-    detectAfterClose = true;
-  }
-  
-}
-
-// ------------------------------------------------------
-// setup
-// ------------------------------------------------------
 void setup() {
   Serial.begin(9600);
 
@@ -59,42 +12,82 @@ void setup() {
   keypadInit();
   motorInit();
   magnetInit();
-  ultrasonicInit();
+  //ultrasonicInit();
 
   closeDoor();
+  doorOpen = false;
   doorLocked = true;
-  detectAfterClose = true;
+
+  showPrompt();
 }
 
-// ------------------------------------------------------
-// loop
-// ------------------------------------------------------
 void loop() {
 
-  // 0. 라즈베리 응답 처리
+  // ───────────────────────────────
+  // 1) 키패드 처리
+  // ───────────────────────────────
+  handleKeypad();
+
+  // ───────────────────────────────
+  // 2) 시리얼 응답 처리
+  // ───────────────────────────────
   handleSerialResponse();
 
-  // 1. 문 닫힘 감지 → ULTRA 리셋
-  if (isMagnetDetected()) {
-    if (!doorLocked) {
+  // ───────────────────────────────
+  // 3) 문 닫힘 감지(마그네틱)
+  // ───────────────────────────────
+  if (millis() - lastMagCheck > 200) {
+    lastMagCheck = millis();
+
+    if (isMagnetDetected()) {
+      if (!doorOpen)  return; // 이미 문이 닫힌 상태라면 아무동작 안함
+      
       Serial.println("DETECT:1");
       closeDoor();
-      delay(50);
-      lcd.clear();
-      showPrompt();
-
-      doorLocked = true;
       doorOpen = false;
-//      ultraSentAfterClose = false;
-      detectAfterClose = false;
+      doorLocked = true;
     }
-  } else {
-    doorLocked = false;
-    detectAfterClose = true;
   }
+}
 
+void handleSerialResponse() {
+  if (!Serial.available()) return;
 
+  String res = Serial.readStringUntil('\n');
+  res.trim();
+  if (res.length() == 0) return;
 
-  // 3. 키패드 처리
-  handleKeypad();  
+  if (res == "MATCH") {
+    openDoor();
+    doorOpen = true;
+    doorLocked = false;
+    showMessage("Door Open", 800);
+    showPrompt();
+  }
+  else if (res == "NO_MATCH") {
+    closeDoor();
+    doorOpen = false;
+    doorLocked = true;
+    showMessage("ACCESS DENIED", 800);
+    showPrompt();
+  }
+  else if (res == "OPEN") {
+    openDoor();
+    doorOpen = true;
+    doorLocked = false;
+    showMessage("Door Open", 800);
+    showPrompt();
+  }
+  else if (res == "CLOSE") {
+    closeDoor();
+    doorOpen = false;
+    doorLocked = true;
+  }
+  else if (res == "DENIED") {
+    closeDoor();
+    doorOpen = false;
+    doorLocked = true;
+    showMessage("Object Inside", 800);
+    showPrompt();
+  }
 }

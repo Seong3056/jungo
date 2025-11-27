@@ -28,10 +28,10 @@ void closeDoor();
 void magnetInit();
 bool isMagnetDetected();
 
-#define TRIG_PIN 11
-#define ECHO_PIN 12
-void ultrasonicInit();
-float getUltrasonicDistance();   // ⭐ main → 모듈로 이동한 함수
-void handleUltrasonic();
+//#define TRIG_PIN 11
+//#define ECHO_PIN 12
+//void ultrasonicInit();
+//float getUltrasonicDistance();   // ⭐ main → 모듈로 이동한 함수
+//void handleUltrasonic();
 
 #endif
