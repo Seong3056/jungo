@@ -90,6 +90,7 @@ void loop() {
     }
   } else {
     doorLocked = false;
+    detectAfterClose = true;
   }
 
 

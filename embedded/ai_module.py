@@ -58,8 +58,8 @@ def analyze_image(image_path: str):
                         "type": "text",
                         "text": (
                             "이 사진 속 제품의 브랜드, 모델명, confidence(0~100)를 판별하고 "
-                            "당근마켓 기준 중고가를 배열 형태로 제공해줘.\n"
-                            "예: {'brand':'Samsung','product':'Galaxy S21','confidence':90,'used_price':[15,18]}\n"
+                            "당근마켓 기준 중고가를 실수, 배열 형태로 제공해줘.\n"
+                            "예: {'brand':'Samsung','product':'Galaxy S21','confidence':90,'used_price':[15.0,18.0]}\n"
                             "반드시 JSON 딕셔너리 형식만 출력해."
                         ),
                     },
@@ -129,10 +129,12 @@ def analyze_image(image_path: str):
 
             # 3-2. used_price 배열 → 최저가 저장
             if used_low is not None:
-                if used_low < 1000:
+                if used_low > 10000:
+                    last_listing.used_low_price = used_low
+                elif used_low > 100:
                     last_listing.used_low_price = used_low * 1000
                 else:
-                    last_listing.used_low_price = used_low
+                    last_listing.used_low_price = used_low * 10000
                 write_log(f"[DB] Listing({last_listing.id}) used_low_price={used_low}")
             else:
                 write_log(f"[DB] Listing({last_listing.id}) used_low_price 업데이트 안 함(값 없음)")
