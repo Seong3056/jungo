@@ -14,7 +14,7 @@ django.setup()
 
 # ===== 내부 모듈 =====
 from embedded.camera_module import init_camera, release_camera
-from serial_handler import start_serial
+from serial_handler_copy import start_serial
 from logger import write_log
 
 

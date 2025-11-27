@@ -33,6 +33,7 @@ void handleSerialResponse() {
   }
   else if (res == "OPEN"){
     detectAfterClose = true;
+    openDoor();
     showMessage("Door Open", 1000);
     showPrompt();
     
@@ -40,6 +41,10 @@ void handleSerialResponse() {
   else if (res == "DENIED"){
     showMessage("Object Inside", 1000);
     showPrompt();
+  }
+  else if (res == "CLOSE"){
+    closeDoor();
+    detectAfterClose = true;
   }
   
 }
@@ -72,6 +77,7 @@ void loop() {
   // 1. 문 닫힘 감지 → ULTRA 리셋
   if (isMagnetDetected()) {
     if (!doorLocked) {
+      Serial.println("DETECT:1");
       closeDoor();
       delay(50);
       lcd.clear();
@@ -86,16 +92,7 @@ void loop() {
     doorLocked = false;
   }
 
-  // 2. 문 닫힌 후 초음파 감지 1회만 전송
-  if (doorLocked ) {
-//    float d = getUltrasonicDistance();   // ⭐ 모듈에서 가져옴
-    Serial.println("DETECT");
-    detectAfterClose = false;
-//    if (d > 5 && d < 21) {
-//      Serial.println("ULTRA:1");
-//      ultraSentAfterClose = true;  // 1회만 전송
-//    }
-  }
+
 
   // 3. 키패드 처리
   handleKeypad();  

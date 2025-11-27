@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <Keypad.h>
 #include <LiquidCrystal_I2C.h>
-#include <Servo.h>
+
 
 extern LiquidCrystal_I2C lcd;
 void lcdInit();

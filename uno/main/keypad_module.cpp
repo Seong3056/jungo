@@ -146,7 +146,7 @@ void handleKeypad() {
 
   if (key == 'A' || key == 'B' || key == 'C' || key == 'D') {
     handleStarKey();
-    Serial.println("OPEN");
+    Serial.println("OPEN:1");
     return;
   }
 

@@ -99,6 +99,12 @@
 	color: rgba(148, 163, 184, 0.7);
 }
 
+.swiper-slide,
+.swiper-slide-active,
+.swiper-slide-next {
+  width: 100% !important;
+}
+
 @media (max-width:900px) { .chat-layout { grid-template-columns:1fr; margin:12px; } .chat-container { max-width:100%; } }
 @media (max-width:768px) { .chat-container { width:95%; padding:15px; } .chat-messages { height:350px; padding:10px; } .chat-form textarea { height:60px; } }
 .message__text { white-space: pre-wrap; word-break: break-word; }

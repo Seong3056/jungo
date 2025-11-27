@@ -101,6 +101,8 @@
   let buyerNotifiedForCode = orderConfirmed && !!confirmationCode;
   let sellerPollTimer = null;
   let buyerPollTimer = null;
+  let orderListingId = actionsEl.dataset.listingId || null;
+
 
   const codeTexts = purchaseCodeEl
     ? {
@@ -148,7 +150,7 @@
     }
     if (orderConfirmed && confirmationCode) {
       purchaseCodeEl.innerHTML =
-        `${codeTexts.completePrefix}<span class="chat-purchase-code__value">${orderId}↵ ${confirmationCode}↵</span>`;
+        `${codeTexts.completePrefix}<span class="chat-purchase-code__value">${orderListingId}↵ ${confirmationCode}↵</span>`;
       if (triggerAlert && !buyerNotifiedForCode) {
         alert(`${codeTexts.completePrefix}${confirmationCode}`);
         buyerNotifiedForCode = true;

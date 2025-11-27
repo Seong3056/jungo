@@ -96,3 +96,8 @@ main.container {
 	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 
+.swiper-slide,
+.swiper-slide-active,
+.swiper-slide-next {
+  width: 100% !important;
+}

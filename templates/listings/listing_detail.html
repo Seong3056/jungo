@@ -20,7 +20,7 @@
 
         {% if object.capture_image %}
         <div class="swiper-slide">
-          <img src="{{ object.capture_image.url }}" style="width:100%;object-fit:contain ;max-height:520px;">
+          <img src="{{ object.capture_image.url }}" style="width:100%;object-fit:contain ;max-height:520px;transform: translateY(50%) rotate(90deg);">
         </div>
         {% endif %}
 
@@ -53,7 +53,8 @@
 <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 <script>
   const swiper = new Swiper('.swiper', {
-    loop: true,              // 🔁 무한 반복
+    slidesPerView: 1,
+    loop: false,              // 🔁 무한 반복
     speed: 800,            // 슬라이드 전환 속도
     autoplay: {
       delay: 2500,          // 자동 슬라이드 시간

@@ -1,6 +1,6 @@
 #include "lock_module.h"
 
-Servo motor;
+
 
 void motorInit() {
     pinMode(relayPin, OUTPUT);
