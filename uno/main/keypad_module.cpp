@@ -115,17 +115,19 @@ static void handleAKey() {
 
   float d = getUltrasonicDistance();
 
-  if (d > 26) {
+  if (d > 24 ) {
     // 🔥 강제 문 열기 (마그네틱 감지와 상관없이)
     openDoor();
     doorLocked = false;   // ⭐ 강제로 문이 열린 상태로 전환
     doorOpen = true;
 
     showTempMessage("Force Open", 800);
+    Serial.println(d);
     showEnterIdPrompt();
   } else {
     showTempMessage("Object Inside", 800);
     showEnterIdPrompt();
+    Serial.println(d);
   }
 }
 
@@ -143,7 +145,8 @@ void handleKeypad() {
   if (!key) return;
 
   if (key == 'A' || key == 'B' || key == 'C' || key == 'D') {
-    handleAKey();
+    handleStarKey();
+    Serial.println("OPEN");
     return;
   }
 

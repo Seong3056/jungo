@@ -18,10 +18,10 @@ float getUltrasonicDistance() {
   delayMicroseconds(10);
   digitalWrite(TRIG_PIN, LOW);
 
-  duration = pulseIn(ECHO_PIN, HIGH, 2350);
+  duration = pulseIn(ECHO_PIN, HIGH, 3000);
   distance = duration * 0.034 / 2.0;
 
-  if (distance <= 0) return 999;  
+  // if (distance <= 0) return 999;  
 
 Serial.print(distance);
   Serial.println(" cm");

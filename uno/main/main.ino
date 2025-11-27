@@ -2,7 +2,7 @@
 
 bool doorLocked = false;
 bool doorOpen = false;
-bool ultraSentAfterClose = false;
+bool detectAfterClose = true;
 
 String serialBuffer = "";
 
@@ -16,18 +16,32 @@ void handleSerialResponse() {
   res.trim();
   if (res.length() == 0) return;
 
+  
   if (res == "MATCH") {
     if (!doorOpen) {
       doorOpen = true;
       openDoor();
+      detectAfterClose = false;
       showMessage("Door Open", 1000);
       showPrompt();
+      
     }
   }
   else if (res == "NO_MATCH") {
     showMessage("ACCESS DENIED", 1000);
     showPrompt();
   }
+  else if (res == "OPEN"){
+    detectAfterClose = true;
+    showMessage("Door Open", 1000);
+    showPrompt();
+    
+  }
+  else if (res == "DENIED"){
+    showMessage("Object Inside", 1000);
+    showPrompt();
+  }
+  
 }
 
 // ------------------------------------------------------
@@ -44,7 +58,7 @@ void setup() {
 
   closeDoor();
   doorLocked = true;
-  ultraSentAfterClose = false;
+  detectAfterClose = true;
 }
 
 // ------------------------------------------------------
@@ -65,22 +79,24 @@ void loop() {
 
       doorLocked = true;
       doorOpen = false;
-      ultraSentAfterClose = false;
+//      ultraSentAfterClose = false;
+      detectAfterClose = false;
     }
   } else {
     doorLocked = false;
   }
 
   // 2. 문 닫힌 후 초음파 감지 1회만 전송
-  if (doorLocked && !ultraSentAfterClose) {
-    float d = getUltrasonicDistance();   // ⭐ 모듈에서 가져옴
-
-    if (d > 5 && d < 26) {
-      Serial.println("ULTRA:1");
-      ultraSentAfterClose = true;  // 1회만 전송
-    }
+  if (doorLocked ) {
+//    float d = getUltrasonicDistance();   // ⭐ 모듈에서 가져옴
+    Serial.println("DETECT");
+    detectAfterClose = false;
+//    if (d > 5 && d < 21) {
+//      Serial.println("ULTRA:1");
+//      ultraSentAfterClose = true;  // 1회만 전송
+//    }
   }
 
   // 3. 키패드 처리
-  handleKeypad();
+  handleKeypad();  
 }
