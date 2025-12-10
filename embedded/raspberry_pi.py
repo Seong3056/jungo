@@ -2,21 +2,16 @@ import os
 import sys
 import django
 import asyncio
+from embedded.camera_module import init_camera, release_camera
+from serial_handler import start_serial
+from logger import write_log
 
-# ===== Django 루트 경로 등록 =====
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.append(PROJECT_ROOT)
 
-# ===== Django 초기화 =====
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
 django.setup()
-
-# ===== 내부 모듈 =====
-from embedded.camera_module import init_camera, release_camera
-from serial_handler_copy import start_serial
-from logger import write_log
-
 
 async def main():
     write_log("[INFO] === Raspberry Pi module started ===")

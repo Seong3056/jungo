@@ -17,9 +17,12 @@ String inputCode = "";
 bool enteringId = true;
 const int CODE_LEN = 4;
 
-// ---------------------------------------------------
-// LCD Helper
-// ---------------------------------------------------
+void keypadInit() {
+  keypad.setDebounceTime(20);
+  keypad.setHoldTime(50);
+  resetInputState();
+}
+
 static void showEnterIdPrompt() {
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -40,9 +43,6 @@ static void showTempMessage(const char* msg, unsigned long delayMs = 800) {
   delay(delayMs);
 }
 
-// ---------------------------------------------------
-// 입력 초기화
-// ---------------------------------------------------
 static void resetInputState() {
   inputId = "";
   inputCode = "";
@@ -50,16 +50,10 @@ static void resetInputState() {
   showEnterIdPrompt();
 }
 
-// ---------------------------------------------------
-// * 키 처리
-// ---------------------------------------------------
 static void handleStarKey() {
   resetInputState();
 }
 
-// ---------------------------------------------------
-// # 키 처리
-// ---------------------------------------------------
 static void handleHashKey() {
   if (enteringId) {
     if (inputId.length() > 0) {
@@ -87,9 +81,6 @@ static void handleHashKey() {
   }
 }
 
-// ---------------------------------------------------
-// 숫자키 처리
-// ---------------------------------------------------
 static void handleDigitKey(char key) {
   if (enteringId) {
     if (inputId.length() < 8) {
@@ -104,42 +95,6 @@ static void handleDigitKey(char key) {
   }
 }
 
-// ---------------------------------------------------
-// 🔥 A 키 → 초음파 → 문 강제 오픈
-// ---------------------------------------------------
-static void handleAKey() {
-  extern float getUltrasonicDistance();
-  extern void openDoor();
-  extern bool doorLocked;   // ⭐ main.ino 변수 가져오기
-  extern bool doorOpen;
-
-  float d = getUltrasonicDistance();
-
-  if (d > 24 ) {
-    // 🔥 강제 문 열기 (마그네틱 감지와 상관없이)
-    openDoor();
-    doorLocked = false;   // ⭐ 강제로 문이 열린 상태로 전환
-    doorOpen = true;
-
-    showTempMessage("Force Open", 800);
-    Serial.println(d);
-    showEnterIdPrompt();
-  } else {
-    showTempMessage("Object Inside", 800);
-    showEnterIdPrompt();
-    Serial.println(d);
-  }
-}
-
-
-// ---------------------------------------------------
-void keypadInit() {
-  keypad.setDebounceTime(20);
-  keypad.setHoldTime(50);
-  resetInputState();
-}
-
-// ---------------------------------------------------
 void handleKeypad() {
   char key = keypad.getKey();
   if (!key) return;

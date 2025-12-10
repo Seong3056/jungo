@@ -3,8 +3,7 @@ from . import views
 
 app_name = "chat"
 
-urlpatterns = [
-    #path("", views.chat_list_view, name="chat_list"),
+urlpatterns = [    
     path("create/<int:listing_id>/", views.chat_room_create, name="chat_room_create"),  # ✅
-    path("<int:room_id>/", views.chat_view, name="chat_room"),  # ✅
+    path("<int:room_id>/", views.chat_view, name="chat_room"),
 ]

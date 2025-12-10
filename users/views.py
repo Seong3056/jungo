@@ -8,20 +8,7 @@ from chat.models import ChatRoom, Message
 from django.db import models
 from django.db.models import Prefetch
 
-def signup_view(request):
-    if request.user.is_authenticated:
-        return redirect('profile')
-    if request.method == 'POST':
-        form = UserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            login(request, user)
-            messages.success(request, f'{user.username}님 환영합니다!')
-            return redirect('home')
-        messages.error(request, '입력값을 확인해주세요.')
-    else:
-        form = UserCreationForm()
-    return render(request, 'registration/signup.html', {'form': form})
+
 
 def login_view(request):
     if request.user.is_authenticated:
@@ -42,6 +29,21 @@ def logout_view(request):
     logout(request)
     messages.info(request, '로그아웃되었습니다.')
     return redirect('home')
+
+def signup_view(request):
+    if request.user.is_authenticated:
+        return redirect('profile')
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            messages.success(request, f'{user.username}님 환영합니다!')
+            return redirect('home')
+        messages.error(request, '입력값을 확인해주세요.')
+    else:
+        form = UserCreationForm()
+    return render(request, 'registration/signup.html', {'form': form})
 
 @login_required
 def profile_view(request):
